@@ -8,4 +8,7 @@ interface IAnkyAirdrop {
 
     // Returns the token ID for the calling address. Needed to check ownership of an Anky.
     function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256);
+
+    // Check if the address owns an anky
+    function balanceOf(address owner) external view returns (uint256);
 }
