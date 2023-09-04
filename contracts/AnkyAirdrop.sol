@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.8;
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -20,8 +20,8 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
 
     // Mapping from token ID to metadata URI
     mapping(uint256 => string) private _tokenURIs;
-    // Mapping for storing the address of the TBA (token bound account) associated with this token
-    mapping(uint256 => address) public tokenToTBA;
+    // Mapping for storing the address of the TBA (token bound account) associated with the address that owns that anky
+    mapping(address => address) public ownerToTBA;
 
     constructor(address _registry, address _implementation) ERC721("AnkyAirdrop", "ANKY") {
         //This line allows this contract to interact with the registry contract.
@@ -30,37 +30,37 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
     }
 
     // Function to airdrop a single NFT to a given address
-    function airdropNft(address recipient) public onlyOwner {
-        require(balanceOf(recipient) == 0, "Address already owns an Anky");
+   function airdropNft(address to) public onlyOwner returns(uint256) {
+        require(balanceOf(to) == 0, "Address already owns an Anky");
         uint256 newTokenId = _tokenIds.current();
-        // Here there needs to be a call to the registry to transform this anky into an erc6551 TBA.
-        _safeMint(recipient, newTokenId);
-        // Create the TBA for this user.
+        _safeMint(to, newTokenId);
+        _tokenIds.increment();
+        return newTokenId;
+    }
 
-       address tba = registry.createAccount(
-            _implementationAddress,  // implementation
-            block.chainid,  // chainId
-            address(this),  // tokenContract
-            newTokenId,  // tokenId
-            0,  // salt or seed
-            "0x" // initData, assuming no initialization data
+    function createTBAforUsersAnky(address userWallet) public  returns(address){
+        uint256 tokenId = tokenOfOwnerByIndex(userWallet, 0); // Retrieve token ID of user's Anky
+        require(balanceOf(userWallet) != 0, "You don't own an Anky");
+        require(ownerToTBA[userWallet] == address(0), "TBA already created for this Anky");
+
+        address tba = registry.createAccount(
+            _implementationAddress,
+            block.chainid,
+            address(this),
+            tokenId,
+            0,
+            "0x"
         );
 
-        tokenToTBA[newTokenId] = tba;
-        _tokenIds.increment();
+        ownerToTBA[userWallet] = tba;
+
+        return tba;
     }
 
-    // Function to get the TBA address of a given tokenId
-    function getTBAOfToken(uint256 tokenId) public view returns (address) {
-        require(_exists(tokenId), "Token ID does not exist");
-        return tokenToTBA[tokenId];
-    }
-
-    // Function to get the TBA address of the token that the calling address owns
+   // Function to get the TBA address of the token that the calling address owns
     function getMyAnkyAddress() public view returns (address) {
-        uint256 myTokenId = tokenOfOwnerByIndex(msg.sender, 0); // As each account owns one and only one Anky
-        require(myTokenId != 0, "You don't own your Anky... yet. It is time to fix that");
-        return tokenToTBA[myTokenId];
+        require(balanceOf(msg.sender) > 0, "You don't own an Anky");
+        return ownerToTBA[msg.sender];
     }
 
     // Function to set or update the token URI, only the owner of the contract (anky server) can update the metadata

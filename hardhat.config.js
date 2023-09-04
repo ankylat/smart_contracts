@@ -6,6 +6,21 @@ const config = {
   solidity: {
     version: '0.8.17',
   },
+  etherscan: {
+    apiKey: {
+      'base-goerli': 'PLACEHOLDER_STRING',
+    },
+    customChains: [
+      {
+        network: 'base-goerli',
+        chainId: 84531,
+        urls: {
+          apiURL: 'https://api-goerli.basescan.org/api',
+          browserURL: 'https://goerli.basescan.org',
+        },
+      },
+    ],
+  },
   paths: {
     sources: './contracts',
     tests: './test',
