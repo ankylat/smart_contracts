@@ -16,16 +16,17 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
     IERC6551Registry public registry;
 
     // This is the first argument to the registry function to create the TBA (token bound account)
-    address private constant implementationAddress = 0x9e00DC9dC35611D4155633d6b1FCf8Adc9edC921;
+    address private _implementationAddress;
 
     // Mapping from token ID to metadata URI
     mapping(uint256 => string) private _tokenURIs;
     // Mapping for storing the address of the TBA (token bound account) associated with this token
     mapping(uint256 => address) public tokenToTBA;
 
-    constructor(address _registry) ERC721("AnkyAirdrop", "ANKY") {
+    constructor(address _registry, address _implementation) ERC721("AnkyAirdrop", "ANKY") {
         //This line allows this contract to interact with the registry contract.
         registry = IERC6551Registry(_registry);
+        _implementationAddress = _implementation;
     }
 
     // Function to airdrop a single NFT to a given address
@@ -37,7 +38,7 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
         // Create the TBA for this user.
 
        address tba = registry.createAccount(
-            implementationAddress,  // implementation
+            _implementationAddress,  // implementation
             block.chainid,  // chainId
             address(this),  // tokenContract
             newTokenId,  // tokenId

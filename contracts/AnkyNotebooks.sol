@@ -21,7 +21,7 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
         address creator;
         string metadataURI;
         uint256 numPages;
-        uint256 price;  // in wei
+        uint256 price; // What is the unit of the prize?
         uint256 supply;
     }
 
