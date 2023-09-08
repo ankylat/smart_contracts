@@ -11,4 +11,7 @@ interface IAnkyAirdrop {
 
     // Check if the address owns an anky
     function balanceOf(address owner) external view returns (uint256);
+
+    // Get the TBA of the anky that is owned by the wallet that is calling the function:
+    function getUsersAnkyAddress(address userWallet) external view returns (address);
 }

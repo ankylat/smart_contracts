@@ -26,6 +26,7 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
     }
 
     struct NotebookInstance {
+        address ankyKeeperTbaAddress;
         uint256 templateId;
         mapping(uint256 => string) pages;
     }
@@ -41,18 +42,19 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
     mapping(uint256 => uint256) public templateSupply;
 
     event NotebookTemplateCreated(uint256 indexed templateId, address indexed creator, uint256 price, uint256 supply);
-    event NotebookInstanceMinted(uint256 indexed instanceId, address indexed owner, uint256 indexed templateId);
+    event NotebookInstanceMinted(uint256 indexed instanceId, address indexed owner,  uint256 indexed templateId);
 
     constructor(address _ankyAirdrop) ERC1155("https://yourmetadata.uri/{id}.json") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
         platformAddress = msg.sender;
     }
 
-  function createNotebookTemplate(string memory metadataURI, uint256 numPages, uint256 supply) external payable {
-        // Ensure the user owns an Anky by checking the first token
-        require(ankyAirdrop.balanceOf(msg.sender) != 0, "You must own an Anky to create a notebook template");
+  function createNotebookTemplate(address ankyTba, string memory metadataURI, uint256 numPages, uint256 supply) external payable {
+    // Ensure the user owns an Anky by checking the first token
+    require(ankyAirdrop.balanceOf(msg.sender) != 0, "You must own an Anky to create a notebook template");
 
-        uint256 price = calculatePrice(numPages);
+    // Hardcoded price in wei. 0.001 ETH is 10^15 wei.
+        uint256 price = 1e15;
         require(msg.value >= price, "Insufficient fee sent");
 
         notebookTemplates[nextTemplateId] = NotebookTemplate({
@@ -67,7 +69,11 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
         nextTemplateId++;
     }
 
- function mintNotebookInstance(uint256 templateId, uint256 amount) external payable {
+ function mintNotebookInstance(address ankyTba, uint256 templateId, uint256 amount) external payable {
+
+        require(ankyAirdrop.balanceOf(msg.sender) != 0, "Address needs to own an Anky to mint a notebook");
+        address tbaAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(tbaAddress == ankyTba, "You are not the owner of this Anky");
         require(amount > 0 && amount <= 5, "You can mint between 1 to 5 notebooks");
 
         NotebookTemplate storage notebookTemplate = notebookTemplates[templateId];
@@ -85,8 +91,9 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
             NotebookInstance storage instance = notebookInstances[nextInstanceId];
             instance.templateId = templateId;
 
-            _mint(msg.sender, nextInstanceId, 1, "");
-            emit NotebookInstanceMinted(nextInstanceId, msg.sender, templateId);
+
+            _mint(tbaAddress, nextInstanceId, 1, "");
+            emit NotebookInstanceMinted(nextInstanceId, tbaAddress, templateId);
 
             nextInstanceId++;
         }
@@ -106,6 +113,10 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
         notebookInstance.pages[pageNumber] = content;
     }
 
+     function userBalanceOfAnky(address userAddress) external view returns(uint256){
+        return ankyAirdrop.balanceOf(userAddress);
+    }
+
     // Implement the isApprovedForAll function, to check for operator approval
     function isApprovedForAll(address owner, address operator) public view override returns (bool) {
         return super.isApprovedForAll(owner, operator);
@@ -121,5 +132,12 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
 
     function ownerOf(uint256 instanceId) public pure returns (address) {
         return address(uint160(instanceId));
+    }
+
+    function getTotalTemplates() public view returns (uint256) {
+        return nextTemplateId - 1;
+    }
+    function getTotalInstances() public view returns (uint256) {
+        return nextInstanceId - 1;
     }
 }

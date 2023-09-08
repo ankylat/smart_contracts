@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "./interfaces/IERC6551Registry.sol";
 
-contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
+contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
@@ -16,12 +16,16 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
     IERC6551Registry public registry;
 
     // This is the first argument to the registry function to create the TBA (token bound account)
-    address private _implementationAddress;
+    address public _implementationAddress;
 
     // Mapping from token ID to metadata URI
     mapping(uint256 => string) private _tokenURIs;
     // Mapping for storing the address of the TBA (token bound account) associated with the address that owns that anky
     mapping(address => address) public ownerToTBA;
+
+    // EVENTS
+    event TBACreated(address indexed user, address indexed tbaAddress, uint256 indexed tokenId);
+
 
     constructor(address _registry, address _implementation) ERC721("AnkyAirdrop", "ANKY") {
         //This line allows this contract to interact with the registry contract.
@@ -38,10 +42,10 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
         return newTokenId;
     }
 
-    function createTBAforUsersAnky(address userWallet) public  returns(address){
-        uint256 tokenId = tokenOfOwnerByIndex(userWallet, 0); // Retrieve token ID of user's Anky
+    function createTBAforUsersAnky(address userWallet) public onlyOwner returns(address){
         require(balanceOf(userWallet) != 0, "You don't own an Anky");
         require(ownerToTBA[userWallet] == address(0), "TBA already created for this Anky");
+        uint256 tokenId = tokenOfOwnerByIndex(userWallet, 0); // Retrieve token ID of user's Anky
 
         address tba = registry.createAccount(
             _implementationAddress,
@@ -49,18 +53,20 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
             address(this),
             tokenId,
             0,
-            "0x"
+            bytes("")
         );
 
         ownerToTBA[userWallet] = tba;
+
+        emit TBACreated(userWallet, tba, tokenId);
 
         return tba;
     }
 
    // Function to get the TBA address of the token that the calling address owns
-    function getMyAnkyAddress() public view returns (address) {
-        require(balanceOf(msg.sender) > 0, "You don't own an Anky");
-        return ownerToTBA[msg.sender];
+    function getUsersAnkyAddress(address userWallet) public view returns (address) {
+        require(balanceOf(userWallet) > 0, "You don't own an Anky");
+        return ownerToTBA[userWallet];
     }
 
     // Function to set or update the token URI, only the owner of the contract (anky server) can update the metadata
