@@ -38,9 +38,10 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
         return newTokenId;
     }
 
+    // Function to create a TBA to an Anky
     function createTBAforUsersAnky(address userWallet) public  returns(address){
         uint256 tokenId = tokenOfOwnerByIndex(userWallet, 0); // Retrieve token ID of user's Anky
-        require(balanceOf(userWallet) != 0, "You don't own an Anky");
+        require(balanceOf(msg.sender) != 0, "You don't own an Anky");
         require(ownerToTBA[userWallet] == address(0), "TBA already created for this Anky");
 
         address tba = registry.createAccount(
@@ -48,13 +49,24 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable{
             block.chainid,
             address(this),
             tokenId,
-            0,
-            "0x"
+            0, // salt
+            bytes('') // initData
         );
 
         ownerToTBA[userWallet] = tba;
 
         return tba;
+    }
+    
+    // Function to get the TBA address from the Registry by tokenId
+    function getTBA(uint256 tokenId) public view returns (address) {
+        return registry.account(
+            _implementationAddress,
+            block.chainid,
+            address(this),
+            tokenId,
+            0 // salt
+        );
     }
 
    // Function to get the TBA address of the token that the calling address owns
