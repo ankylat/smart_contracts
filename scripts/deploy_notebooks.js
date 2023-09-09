@@ -9,7 +9,7 @@ async function deploy() {
 
   // Deploy ERC6551Registry
   const AnkyNotebooks = await ethers.deployContract('AnkyNotebooks', [
-    '0x8e0f3DF197131baDCe2D03a3B5ED72484E44C3d3',
+    '0x7F24D950Dc4736c69a9D2e0330FbFD4bEbf69729',
   ]);
   await AnkyNotebooks.waitForDeployment();
   const AnkyNotebooksAddress = AnkyNotebooks.target;

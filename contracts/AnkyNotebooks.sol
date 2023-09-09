@@ -36,6 +36,10 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
 
     mapping(uint256 => NotebookTemplate) public notebookTemplates;
     mapping(uint256 => NotebookInstance) public notebookInstances;
+    // This mapping is for fetching all the notebooks that have been minted of a particular template
+    mapping(uint256 => uint256[]) public instancesOfTemplate;
+    // This mapping is for storing all the notebooks that a particular address owns.
+    mapping(address => uint256[]) public ankyToOwnedNotebooks;
 
     uint256 nextTemplateId = 1;
     uint256 nextInstanceId = 1;
@@ -49,7 +53,7 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
         platformAddress = msg.sender;
     }
 
-  function createNotebookTemplate(address ankyTba, string memory metadataURI, uint256 numPages, uint256 supply) external payable {
+  function createNotebookTemplate(string memory metadataURI, uint256 numPages, uint256 supply) external payable {
     // Ensure the user owns an Anky by checking the first token
     require(ankyAirdrop.balanceOf(msg.sender) != 0, "You must own an Anky to create a notebook template");
 
@@ -91,8 +95,10 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
             NotebookInstance storage instance = notebookInstances[nextInstanceId];
             instance.templateId = templateId;
 
-
             _mint(tbaAddress, nextInstanceId, 1, "");
+            // To save all of the instances of a template that have been generated and then be able to display it on the front end.
+            instancesOfTemplate[templateId].push(nextInstanceId);
+            ankyToOwnedNotebooks[tbaAddress].push(templateId);
             emit NotebookInstanceMinted(nextInstanceId, tbaAddress, templateId);
 
             nextInstanceId++;
@@ -101,16 +107,28 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
         uint256 creatorShare = (totalPrice * 10) / 100;
         uint256 userShare = (totalPrice * 70) / 100;
 
+        // Send part of the minting price back to the creator of the notebook template
         payable(notebookTemplate.creator).transfer(creatorShare);
+        // Send part of the minting price paid back to the anky that is minting the notebook
+        // The problem here lies with the interactions of the TBA with the call of the functions. Who is the one that owns the money with which the call is made? Is it the address that owns the Anky or is it the Anky? If it is the Anky, how can we call the function "from" the anky but give the user the rights to do that? I just think it is a better strategy to work with the user's wallet. That's why it is implemented like this atm.
         payable(msg.sender).transfer(userShare);
+
     }
 
     function writePage(uint256 instanceId, uint256 pageNumber, string memory content) external {
+        // Instance of the notebook.
         require(_exists(instanceId), "Instance doesn't exist");
-        require(msg.sender == ownerOf(instanceId), "Only the owner can write");
+        // Only the owner of the anky can write in the page that is inside
+        address tbaAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(tbaAddress == ownerOf(instanceId), "Only the owner of the Anky that owns this notebook can write");
 
         NotebookInstance storage notebookInstance = notebookInstances[instanceId];
         notebookInstance.pages[pageNumber] = content;
+    }
+
+    // This serves the purpose of getting all of the templates that have been created.
+    function getInstancesOfTemplate(uint256 templateId) external view returns (uint256[] memory) {
+        return instancesOfTemplate[templateId];
     }
 
      function userBalanceOfAnky(address userAddress) external view returns(uint256){
@@ -132,6 +150,17 @@ contract AnkyNotebooks is ERC1155Supply, Ownable {
 
     function ownerOf(uint256 instanceId) public pure returns (address) {
         return address(uint160(instanceId));
+    }
+
+    // To withdraw part of the $ that is on the smart contract.
+    function withdraw(uint256 amount) external onlyOwner {
+        require(amount <= address(this).balance, "Insufficient funds");
+        payable(owner()).transfer(amount);
+    }
+
+    // To withdraw the funds from the smart contract to the owner of it, which will eventually be the DAO
+    function withdrawAll() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
     }
 
     function getTotalTemplates() public view returns (uint256) {
