@@ -1,106 +1,65 @@
-The blockchain background for Anky.
-
-# AnkyNotebooks Smart Contract (/contracts/AnkyNotebooks.sol)
+# Anky Codebase README
 
 ## Overview
 
-The `AnkyNotebooks` smart contract is a crucial part of the Anky ecosystem, allowing users to create, mint, and modify digital notebooks. Each notebook is an NFT (Non-Fungible Token) based on the ERC-1155 standard, with additional functionalities specific to the Anky project.
+This codebase contains the contracts and deployment scripts for the Anky platform. Anky offers an NFT airdrop service and a separate functionality around notebooks. The main contracts of interest are:
 
-## Table of Contents
+- **AnkyAirdrop.sol**: This contract enables airdropping NFTs to users and provides them with token-bound accounts (TBA).
+- **AnkyNotebooks.sol**: A contract related to Anky's notebook functionality.
+- **ERC6551Registry.sol** & **ERC6551Account.sol**: These contracts are part of the ERC-6551 specification, allowing the creation of TBAs for NFTs.
 
-1. [Getting Started](#getting-started)
-   - [Dependencies](#dependencies)
-   - [Installation](#installation)
-2. [Contract Structure](#contract-structure)
-3. [Features and Methods](#features-and-methods)
-4. [Contributing](#contributing)
+## Contract Descriptions
 
----
+### AnkyAirdrop.sol
 
-## Getting Started
+#### Properties:
 
-### Dependencies
+- `registry`: A reference to the ERC6551Registry that keeps track of TBAs.
+- `ownerToTBA`: A mapping that relates an NFT owner to its associated TBA.
 
-- Solidity ^0.8.0
-- OpenZeppelin contracts (ERC1155, ERC1155Supply, Ownable)
-- AnkyAirdrop Interface
+#### Functions:
 
-### Installation
+- `airdropNft(address to)`: Airdrops an NFT to a specified address.
+- `createTBAforUsersAnky(address userWallet)`: Creates a TBA for a user's Anky NFT.
+- `getTBA(uint256 tokenId)`: Retrieves the TBA address from the Registry using the tokenId.
+- `getUsersAnkyAddress(address userWallet)`: Retrieves the TBA address of the NFT that a specified user owns.
+- `setTokenURI(uint256 tokenId, string memory newUri)`: Sets or updates the token URI.
+- `getTokenURI(uint256 tokenId)`: Retrieves the token URI.
 
-1. Clone this repository.
-2. Install the required npm packages:
-   `npm install`
-3. Compile the contract:
-   `truffle compile`
+### AnkyTemplates.sol
 
----
+The AnkyTemplates smart contract serves as a repository for notebook templates created by users owning an Anky. Every template contains metadata like the creator's address, associated metadata URI, the number of pages it has, its price, and the supply. This contract acts as an ERC1155 token, which means each template has an ID and can have multiple supplies. The instancesOfTemplate mapping provides an efficient way to fetch all notebook instances minted from a particular template. This contract ensures that only valid Anky owners can create templates and integrates with the AnkyAirdrop contract to verify Anky ownership.
 
-## Contract Structure
+### AnkyNotebooks.sol
 
-### Inheritance
+The AnkyNotebooks smart contract is responsible for minting and managing individual notebook instances based on the templates from the AnkyTemplates contract. As an ERC721 token, every notebook instance is unique, having an associated template ID and a status to determine if any writing has occurred. The contract also provides functionalities for users to write content on notebook pages and to check the content of any written page. For every minted notebook, an event is emitted, and the associated costs are shared with the creator. The contract collaborates with the AnkyAirdrop contract to ensure that only valid Anky owners can mint notebooks and write on them.
 
-- Inherits from `ERC1155Supply` for standard ERC1155 functionality with additional methods for querying the supply of each token ID.
-- Inherits from `Ownable` for administrative functionalities.
+### ERC6551Registry.sol & ERC6551Account.sol
 
-### Structs
+Contracts that implement the ERC-6551 specification, providing the ability to create TBAs for NFTs.
 
-1. **NotebookTemplate**: Stores metadata for notebook templates.
+## Deployment Scripts
 
-- `creator`: Address of the notebook template creator.
-- `metadataURI`: The URI for the metadata.
-- `numPages`: Number of pages in the notebook.
-- `price`: Cost for minting an instance of this notebook.
-- `supply`: Number of available instances to be minted.
+### deploy_anky_airdrop_contracts.js
 
-2. **NotebookInstance**: Represents an individual notebook that has been minted.
+This script handles the deployment of:
 
-- `templateId`: ID of the `NotebookTemplate` it was minted from.
-- `pages`: Mapping to store content on different pages.
+- **ERC6551Registry**
+- **ERC6551Account**
+- **AnkyAirdrop** (with the ERC6551Account's address as the `implementationAddress`)
 
-### State Variables
+### deploy_notebooks.js
 
-- `ankyAirdrop`: An interface to interact with the AnkyAirdrop contract.
-- `platformAddress`: The address that receives a percentage of the minting fees.
-- `notebookTemplates`: Mapping that stores all the notebook templates.
-- `notebookInstances`: Mapping that stores all minted notebook instances.
+Deploys the **AnkyNotebooks** contract.
 
----
+## Development
 
-## Features and Methods
+The development environment uses Hardhat. For local deployments, ensure that you have a local Ethereum node running at `http://127.0.0.1:8545/` and that the `PRIVATE_KEY` environment variable is set for the deploying address.
 
-1. **constructor**: Initializes contract with the AnkyAirdrop contract address.
-2. **createNotebookTemplate**: Creates a new notebook template.
+To run a deployment script:
 
-- Checks if the user owns an Anky via AnkyAirdrop interface.
-- Checks if the correct fee is sent.
+```bash
+npx hardhat run --network localhost scripts/deploy_anky_airdrop_contracts.js
+```
 
-3. **mintNotebookInstance**: Mints instances of a notebook.
-
-- Checks the validity of the template ID.
-- Checks if sufficient Ether is sent.
-- Updates the supply of the template after minting.
-
-4. **writePage**: Allows owners to write into their notebook instances.
-
-- Validates if the instance exists and if the caller is the owner.
-
-5. **calculatePrice**: Function to calculate the price of minting a notebook based on the number of pages.
-6. **\_exists & ownerOf**: Internal functions to check if a notebook instance exists and retrieve its owner.
-
----
-
-## Contributing
-
-Contributions are always welcome. If you're unfamiliar with the project, please start by reading this README to understand the purpose and structure of the smart contract. Make sure to also check the issues for any open tasks or bugs.
-
-### How to Contribute
-
-1. Fork the repository.
-2. Clone your fork locally.
-3. Create a new branch for your feature or fix.
-4. Make your changes.
-5. Push your changes back to your fork on GitHub.
-6. Create a pull request.
-7. Your pull request will be reviewed and hopefully merged into the main repo!
-
-Thank you for your interest and we look forward to your contributions!
+Replace the script name with deploy_notebooks.js for the notebook deployment.
