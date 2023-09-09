@@ -42,25 +42,38 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         return newTokenId;
     }
 
-    function createTBAforUsersAnky(address userWallet) public onlyOwner returns(address){
-        require(balanceOf(userWallet) != 0, "You don't own an Anky");
-        require(ownerToTBA[userWallet] == address(0), "TBA already created for this Anky");
-        uint256 tokenId = tokenOfOwnerByIndex(userWallet, 0); // Retrieve token ID of user's Anky
+// Function to create a TBA for a user's Anky
+function createTBAforUsersAnky(address userWallet) public returns(address) {
+    require(balanceOf(userWallet) != 0, "You don't own an Anky");
+    require(ownerToTBA[userWallet] == address(0), "TBA already created for this Anky");
 
-        address tba = registry.createAccount(
+    uint256 tokenId = tokenOfOwnerByIndex(userWallet, 0); // Retrieve token ID of user's Anky
+
+    address tba = registry.createAccount(
+        _implementationAddress,
+        block.chainid,
+        address(this),
+        tokenId,
+        0,       // salt
+        bytes("") // initData
+    );
+
+    ownerToTBA[userWallet] = tba;
+
+    emit TBACreated(userWallet, tba, tokenId);
+
+    return tba;
+}
+
+    // Function to get the TBA address from the Registry by tokenId
+    function getTBA(uint256 tokenId) public view returns (address) {
+        return registry.account(
             _implementationAddress,
             block.chainid,
             address(this),
             tokenId,
-            0,
-            bytes("")
+            0 // salt
         );
-
-        ownerToTBA[userWallet] = tba;
-
-        emit TBACreated(userWallet, tba, tokenId);
-
-        return tba;
     }
 
    // Function to get the TBA address of the token that the calling address owns
