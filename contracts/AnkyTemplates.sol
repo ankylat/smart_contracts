@@ -19,6 +19,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
     IAnkyAirdrop public ankyAirdrop;
     address public ankyNotebooksAddress;
 
+    mapping(address => uint256[]) public templatesByCreator;
     mapping(uint256 => NotebookTemplate) public templates;
     // This mapping is for fetching all the notebooks that have been minted of a particular template
     mapping(uint256 => uint256[]) public instancesOfTemplate;
@@ -57,6 +58,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
             //supply: supply
         });
         templateSupply[templateCount] = supply;
+        templatesByCreator[msg.sender].push(templateCount);
         emit TemplateCreated(templateCount, msg.sender, supply, price, metadataURI);
         templateCount++;
     }
@@ -70,6 +72,9 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
         return templates[templateId].prompts[pageNumber];
     }
 
+    function getTemplatesByCreator(address creator) external view returns(uint256[] memory) {
+        return templatesByCreator[creator];
+    }
 
     function getNumPagesOfTemplate(uint256 templateId) external view returns(uint256) {
         return templates[templateId].prompts.length;

@@ -89,6 +89,8 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         // Ensure the page hasn't been written before
         require(bytes(notebookPages[notebookId][pageNumber].arweaveCID).length == 0, "Page already written");
         uint256 lastPageWritten = notebookLastPageWritten[notebookId];
+        require(pageNumber == lastPageWritten + 1, "Pages must be written in sequence");
+
         uint256 nextPageToWrite = lastPageWritten + 1;
 
         // Retrieve the prompt for the next page
@@ -109,6 +111,7 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         }
 
         emit PageWritten(notebookId, pageNumber, prompt, arweaveCID, block.timestamp);
+        notebookLastPageWritten[notebookId] = pageNumber;
     }
 
       function getPageContent(uint256 notebookId, uint256 pageNumber) external view returns(UserPageContent memory) {
@@ -128,14 +131,11 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 tokenBatch) internal override {
         super._beforeTokenTransfer(from, to, tokenId, tokenBatch);
-
-    // Check if it's a transfer action (not mint or burn)
-    if(from != address(0) && to != address(0)) {
-            require(notebookInstances[tokenId].isVirgin, "Notebook has been written and cannot be transferred directly");
+        // Check if it's a transfer action (not mint or burn)
+        if(from != address(0) && to != address(0)) {
+                require(notebookInstances[tokenId].isVirgin, "Notebook has been written and cannot be transferred directly");
+            }
     }
-}
-
-
 
     function getOwnedNotebooks(address user) external view returns(uint256[] memory) {
         return ankyTbaToOwnedNotebooks[user];
@@ -146,5 +146,25 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
 
     function isVirgin(uint256 notebookId) external view returns(bool) {
         return notebookInstances[notebookId].isVirgin;
+    }
+
+    function getUserVirginNotebooks(address user) external view returns (uint256[] memory) {
+        uint256[] memory allNotebooks = ankyTbaToOwnedNotebooks[user];
+        uint256 count = 0;
+        for(uint256 i = 0; i < allNotebooks.length; i++) {
+            if(notebookInstances[allNotebooks[i]].isVirgin) {
+                count++;
+            }
+        }
+
+        uint256[] memory virginNotebooks = new uint256[](count);
+        uint256 index = 0;
+        for(uint256 i = 0; i < allNotebooks.length; i++) {
+            if(notebookInstances[allNotebooks[i]].isVirgin) {
+                virginNotebooks[index] = allNotebooks[i];
+                index++;
+            }
+        }
+        return virginNotebooks;
     }
 }
