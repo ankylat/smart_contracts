@@ -94,9 +94,11 @@ The goal is to develop all of this having in mind the modularity aspect of it. T
 - Deploy the smart contracts running:
 
 ```bash
-npx hardhat run --network localhost scripts/deploy_anky_airdrop_contracts.js
-npx hardhat run --network localhost scripts/deploy_notebooks.js
+npx hardhat run scripts/deploy_anky_airdrop_contracts.js --network base-goerli
 
+From this command, retrieve the AnkyAidrop deployment address and use it as an argument in the deployNotebooks.js file.
+
+npx hardhat run scripts/deploy_notebooks.js --network base-goerli
 ```
 
 - Run the nodejs server on port 3000.
@@ -105,3 +107,5 @@ npx hardhat run --network localhost scripts/deploy_notebooks.js
 Help us build what is happening here. There are many challenges, and the system is complex.
 
 WE NEED YOUR HELP!
+
+///

@@ -6,10 +6,28 @@ async function deploy() {
   console.log('Starting the notebooks contracts deployment...');
   const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const ANKY_AIRDROP_ADDRESS = '0x5fE63A65f387ED636827472Ee609bCC52431B330';
+  console.log('Now the templates will be deployed');
+  const AnkyTemplates = await ethers.deployContract('AnkyTemplates', [
+    ANKY_AIRDROP_ADDRESS,
+  ]);
+  await AnkyTemplates.waitForDeployment();
+  const AnkyTemplatesAddress = AnkyTemplates.target;
+  console.log(`Deployed templates contract at: ${AnkyTemplatesAddress}`);
+  const AnkyTemplatesDeploymentHash =
+    AnkyTemplates.deploymentTransaction().hash;
+  storeDeploymentData(
+    'AnkyTemplates',
+    AnkyTemplatesAddress,
+    signer.address,
+    AnkyTemplatesDeploymentHash,
+    deploymentFile
+  );
 
-  // Deploy ERC6551Registry
+  console.log('Now the notebooks will be deployed');
   const AnkyNotebooks = await ethers.deployContract('AnkyNotebooks', [
-    '0x7F24D950Dc4736c69a9D2e0330FbFD4bEbf69729',
+    ANKY_AIRDROP_ADDRESS,
+    AnkyTemplatesAddress,
   ]);
   await AnkyNotebooks.waitForDeployment();
   const AnkyNotebooksAddress = AnkyNotebooks.target;

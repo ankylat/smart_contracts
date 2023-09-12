@@ -7,10 +7,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 import "./AnkyTemplates.sol";
 
-/*
-The AnkyNotebooks smart contract is responsible for minting and managing individual notebook instances based on the templates from the AnkyTemplates contract. As an ERC721 token, every notebook instance is unique, having an associated template ID and a status to determine if any writing has occurred. The contract also provides functionalities for users to write content on notebook pages and to check the content of any written page. For every minted notebook, an event is emitted, and the associated costs are shared with the creator. The contract collaborates with the AnkyAirdrop contract to ensure that only valid Anky owners can mint notebooks and write on them.
- */
-
 contract AnkyNotebooks is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
 
@@ -35,6 +31,9 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     mapping(uint256 => NotebookInstance) public notebookInstances;
      // This mapping is for storing all the notebooks that a particular anky tba owns.
     mapping(address => uint256[]) public ankyTbaToOwnedNotebooks;
+    // Track the last page written by the user for each notebook
+    mapping(uint256 => uint256) public notebookLastPageWritten;
+
 
     event NotebookMinted(uint256 indexed instanceId, address indexed owner, uint256 indexed templateId);
 
@@ -56,7 +55,9 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         require(notebookTemplate.creator != address(0), "Invalid templateId");
 
                 // Check supply constraints
-        require(notebookTemplate.supply >= amount, "Insufficient supply");
+        uint256 currentSupply = ankyTemplates.getTemplateSupply(templateId);
+        require(currentSupply >= amount, "Insufficient supply");
+
         uint256 totalPrice = notebookTemplate.price * amount;
         require(msg.value >= totalPrice, "Insufficient Ether sent");
 
@@ -82,16 +83,20 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     }
 
 
-   function writePage(uint256 notebookId, uint256 pageNumber, string memory prompt, string memory arweaveCID) external {
-        // THE PROBLEM HERE IS WHAT HAPPENS WHEN THE NOTEBOOK WAS TRANSFERRED TO ANOTHER ADDRESS BECAUSE IT WAS SOLD. THERE NEEDS TO BE AN UPDATE OF THE FUNCTION THAT STORES THE INFORMATION AS OF WHICH IS THE ADDRESS OF THE ANKY THAT OWNS THE ANKY THAT IS HOLDING THE NOTEBOOK THAT IS GOING TO BE WRITTEN, AND HOW DOES THAT AFFECT WHAT IS DONE IN THIS FUNCTION.
-
-        // THERE ALSO NEEDS TO BE A CHECK OF WHAT IS THE PAGE THAT COMES NOW. HOW DOES THE SYSTME KNOW WHAT IS THE PAGE THAT COMES?
-
-        // HOW DO I RETRIEVE THE NEXT PAGE THAT NEEDS TO BE WRITTEN? THERE NEEDS TO BE A FUNCTION THAT CALLS THE PARTICULAR NOTEBOOK INSTANCE AND TELLS WHICH IS THE NEXT PROMPT THAT NEEDS TO BE ANSWERED. HOW WILL WE MAKE SURE THIS IS THE CASE? THAT IS THE CHALLENGE HERE.
+   function writePage(uint256 notebookId, uint256 pageNumber, string memory arweaveCID) external {
         require(ownerOf(notebookId) == ankyAirdrop.getUsersAnkyAddress(msg.sender), "Only the owner of the anky that stores this notebook can write");
 
         // Ensure the page hasn't been written before
         require(bytes(notebookPages[notebookId][pageNumber].arweaveCID).length == 0, "Page already written");
+        uint256 lastPageWritten = notebookLastPageWritten[notebookId];
+        uint256 nextPageToWrite = lastPageWritten + 1;
+
+        // Retrieve the prompt for the next page
+        string memory prompt = ankyTemplates.getTemplatePrompt(notebookInstances[notebookId].templateId, nextPageToWrite);
+
+        require(bytes(prompt).length > 0, "No more pages available to write");
+        require(bytes(notebookPages[notebookId][nextPageToWrite].arweaveCID).length == 0, "Page already written");
+
 
         notebookPages[notebookId][pageNumber] = UserPageContent({
             arweaveCID: arweaveCID,
@@ -121,13 +126,15 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         }
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal virtual override {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 tokenBatch) internal override {
+        super._beforeTokenTransfer(from, to, tokenId, tokenBatch);
 
-        if(from != address(0) && to != address(0)) { // not minting or burning
+    // Check if it's a transfer action (not mint or burn)
+    if(from != address(0) && to != address(0)) {
             require(notebookInstances[tokenId].isVirgin, "Notebook has been written and cannot be transferred directly");
-        }
     }
+}
+
 
 
     function getOwnedNotebooks(address user) external view returns(uint256[] memory) {
