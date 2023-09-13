@@ -13,13 +13,14 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
         string metadataURI;
         uint256 price;
         string[] prompts; // The ordered prompts/questions for each page
-        //uint256 supply;
     }
 
     IAnkyAirdrop public ankyAirdrop;
     address public ankyNotebooksAddress;
 
+    // All the templates that a particular person has added.
     mapping(address => uint256[]) public templatesByCreator;
+    // All the templates in relationship to their id.
     mapping(uint256 => NotebookTemplate) public templates;
     // This mapping is for fetching all the notebooks that have been minted of a particular template
     mapping(uint256 => uint256[]) public instancesOfTemplate;
@@ -33,19 +34,23 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
     }
 
+    // Enforcing the relationship between this contract and the AnkyNotebooks one.
     modifier onlyAnkyNotebooks() {
         require(msg.sender == ankyNotebooksAddress, "Not authorized");
         _;
     }
 
+    // Establishing the relationship between this contract and the AnkyNotebooks one.
      function setAnkyNotebooksAddress(address _ankyNotebooksAddress) external onlyOwner {
         ankyNotebooksAddress = _ankyNotebooksAddress;
     }
 
+    // How many templates are left for a particular one?
     function getTemplateSupply(uint256 templateId) external view returns (uint256) {
         return templateSupply[templateId];
     }
 
+    // For creating a template / blueprint.
       function createTemplate(uint256 price, string[] memory prompts, string memory metadataURI, uint256 supply) external {
         require(ankyAirdrop.balanceOf(msg.sender) != 0, "You must own an Anky to create a notebook template");
 
@@ -55,7 +60,6 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
             metadataURI: metadataURI,
             creator: msg.sender,
             prompts: prompts
-            //supply: supply
         });
         templateSupply[templateCount] = supply;
         templatesByCreator[msg.sender].push(templateCount);
@@ -80,7 +84,6 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
         return templates[templateId].prompts.length;
     }
 
-    // Inside the AnkyTemplates contract
     function addInstanceToTemplate(uint256 templateId, uint256 instanceId) external onlyAnkyNotebooks {
         instancesOfTemplate[templateId].push(instanceId);
         templateSupply[templateId]--;

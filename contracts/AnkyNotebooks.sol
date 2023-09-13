@@ -17,7 +17,7 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
 
     struct NotebookInstance {
         uint256 templateId;
-        mapping(uint256 => UserPageContent) userPages;
+        UserPageContent[] userPages;
         bool isVirgin;
     }
 
@@ -25,8 +25,6 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     AnkyTemplates public ankyTemplates;
     Counters.Counter private _notebookIds;
 
-    // First mapping maps a notebookId to a pageNumber and then to the PageContent.
-    mapping(uint256 => mapping(uint256 => UserPageContent)) public notebookPages;
     // This one maps the id of the notebok to the particular notebook itself.
     mapping(uint256 => NotebookInstance) public notebookInstances;
      // This mapping is for storing all the notebooks that a particular anky tba owns.
@@ -60,82 +58,76 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
 
         uint256 totalPrice = notebookTemplate.price * amount;
         require(msg.value >= totalPrice, "Insufficient Ether sent");
-
+        uint256 currentNotebookId = _notebookIds.current();
         for (uint256 i = 0; i < amount; i++) {
-            uint256 newNotebookId = _notebookIds.current();
 
-            notebookInstances[newNotebookId].templateId = templateId;
-            notebookInstances[newNotebookId].isVirgin = true;
+            notebookInstances[currentNotebookId].templateId = templateId;
+            notebookInstances[currentNotebookId].isVirgin = true;
 
-            _mint(tbaAddress, newNotebookId);
-            ankyTemplates.addInstanceToTemplate(templateId, newNotebookId);
-            ankyTbaToOwnedNotebooks[tbaAddress].push(newNotebookId);
+            _mint(tbaAddress, currentNotebookId);
+            ankyTemplates.addInstanceToTemplate(templateId, currentNotebookId);
+            ankyTbaToOwnedNotebooks[tbaAddress].push(currentNotebookId);
 
-            emit NotebookMinted(newNotebookId, tbaAddress, templateId);
-            _notebookIds.increment();
+            emit NotebookMinted(currentNotebookId, tbaAddress, templateId);
+            currentNotebookId++;
         }
 
         uint256 creatorShare = (totalPrice * 10) / 100;
         uint256 userShare = (totalPrice * 70) / 100;
 
+        // Transfer back part of the money to the creator of the template and to the wallet that is minting.
         payable(notebookTemplate.creator).transfer(creatorShare);
         payable(to).transfer(userShare);
     }
 
+    modifier onlyNotebookOwner(uint256 notebookId) {
+        require(ownerOf(notebookId) == ankyAirdrop.getUsersAnkyAddress(msg.sender), "Only the owner of the anky that stores this notebook can perform this action");
+        _;
+    }
 
-   function writePage(uint256 notebookId, uint256 pageNumber, string memory arweaveCID) external {
-        require(ownerOf(notebookId) == ankyAirdrop.getUsersAnkyAddress(msg.sender), "Only the owner of the anky that stores this notebook can write");
-
-        // Ensure the page hasn't been written before
-        require(bytes(notebookPages[notebookId][pageNumber].arweaveCID).length == 0, "Page already written");
+    function writePage(uint256 notebookId, uint256 pageNumber, string memory arweaveCID) external onlyNotebookOwner(notebookId) {
         uint256 lastPageWritten = notebookLastPageWritten[notebookId];
         require(pageNumber == lastPageWritten + 1, "Pages must be written in sequence");
 
-        uint256 nextPageToWrite = lastPageWritten + 1;
-
-        // Retrieve the prompt for the next page
-        string memory prompt = ankyTemplates.getTemplatePrompt(notebookInstances[notebookId].templateId, nextPageToWrite);
-
-        require(bytes(prompt).length > 0, "No more pages available to write");
-        require(bytes(notebookPages[notebookId][nextPageToWrite].arweaveCID).length == 0, "Page already written");
-
-
-        notebookPages[notebookId][pageNumber] = UserPageContent({
-            arweaveCID: arweaveCID,
-            timestamp: block.timestamp
-        });
-
         NotebookInstance storage notebookInstance = notebookInstances[notebookId];
+
+        // Ensure the page hasn't been written before
+        require(notebookInstance.userPages.length < pageNumber, "Page already written");
+
+        string memory prompt = ankyTemplates.getTemplatePrompt(notebookInstance.templateId, pageNumber);
+        require(bytes(prompt).length > 0, "No more pages available to write");
+
         if(notebookInstance.isVirgin) {
             notebookInstance.isVirgin = false;
         }
+
+        notebookInstance.userPages.push(UserPageContent({
+            arweaveCID: arweaveCID,
+            timestamp: block.timestamp
+        }));
 
         emit PageWritten(notebookId, pageNumber, prompt, arweaveCID, block.timestamp);
         notebookLastPageWritten[notebookId] = pageNumber;
     }
 
-      function getPageContent(uint256 notebookId, uint256 pageNumber) external view returns(UserPageContent memory) {
-        return notebookPages[notebookId][pageNumber];
+
+    function getPageContent(uint256 notebookId, uint256 pageNumber) external view returns(UserPageContent memory) {
+        return notebookInstances[notebookId].userPages[pageNumber];
     }
 
-    function getFullNotebook(uint256 notebookId) external view returns(uint256 templateId, UserPageContent[] memory pages) {
+    function getFullNotebook(uint256 notebookId) external view returns(UserPageContent[] memory pages) {
         NotebookInstance storage instance = notebookInstances[notebookId];
-        templateId = instance.templateId;
-
-        uint256 numPages = ankyTemplates.getNumPagesOfTemplate(templateId);
-        pages = new UserPageContent[](numPages);
-        for (uint256 i = 0; i < numPages; i++) {
-            pages[i] = notebookPages[notebookId][i];
-        }
+        return (instance.userPages);
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 tokenBatch) internal override {
         super._beforeTokenTransfer(from, to, tokenId, tokenBatch);
         // Check if it's a transfer action (not mint or burn)
         if(from != address(0) && to != address(0)) {
-                require(notebookInstances[tokenId].isVirgin, "Notebook has been written and cannot be transferred directly");
-            }
+            require(notebookInstances[tokenId].isVirgin, "Notebook has been written and cannot be transferred directly");
+        }
     }
+
 
     function getOwnedNotebooks(address user) external view returns(uint256[] memory) {
         return ankyTbaToOwnedNotebooks[user];

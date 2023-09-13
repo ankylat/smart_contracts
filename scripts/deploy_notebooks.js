@@ -6,7 +6,7 @@ async function deploy() {
   console.log('Starting the notebooks contracts deployment...');
   const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  const ANKY_AIRDROP_ADDRESS = '0x5fE63A65f387ED636827472Ee609bCC52431B330';
+  const ANKY_AIRDROP_ADDRESS = '0x61E8537532443f49aFC73E71B014D07c13cDDca2';
   console.log('Now the templates will be deployed');
   const AnkyTemplates = await ethers.deployContract('AnkyTemplates', [
     ANKY_AIRDROP_ADDRESS,

@@ -12,7 +12,7 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    // I'm not sure how this works.
+    // This is the interface for interacting with the registry and creating the TBA from this contract.
     IERC6551Registry public registry;
 
     // This is the first argument to the registry function to create the TBA (token bound account)
@@ -25,7 +25,6 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     // EVENTS
     event TBACreated(address indexed user, address indexed tbaAddress, uint256 indexed tokenId);
-
 
     constructor(address _registry, address _implementation) ERC721("AnkyAirdrop", "ANKY") {
         //This line allows this contract to interact with the registry contract.

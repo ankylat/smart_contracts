@@ -109,3 +109,10 @@ Help us build what is happening here. There are many challenges, and the system 
 WE NEED YOUR HELP!
 
 ///
+
+For testing the system and deploying it on your own:
+
+1. Make sure you create a .env file with a PRIVATE_KEY environment variable in it. This will be the address that deploys the contracts.
+2. Make sure you have some base goerli eth in the wallet so that you can deploy the contracts.
+3. Run `npx hardhat run scripts/deploy_all_contracts.js --network base-goerli` to deploy all the contracts.
+
