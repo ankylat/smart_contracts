@@ -13,6 +13,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
         string metadataURI;
         uint256 price;
         string[] prompts; // The ordered prompts/questions for each page
+        uint256 supply;
     }
 
     IAnkyAirdrop public ankyAirdrop;
@@ -24,8 +25,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
     mapping(uint256 => NotebookTemplate) public templates;
     // This mapping is for fetching all the notebooks that have been minted of a particular template
     mapping(uint256 => uint256[]) public instancesOfTemplate;
-    // The following mapping is the unique source of truth of the supply that is left for each one of the notebooks.
-    mapping(uint256 => uint256) public templateSupply;
+
     uint256 public templateCount = 0;
 
     event TemplateCreated(uint256 templateId, address creator, uint256 supply, uint256 price, string metadataURI);
@@ -47,7 +47,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
 
     // How many templates are left for a particular one?
     function getTemplateSupply(uint256 templateId) external view returns (uint256) {
-        return templateSupply[templateId];
+        return templates[templateId].supply;
     }
 
     // For creating a template / blueprint.
@@ -59,9 +59,9 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
             price: price,
             metadataURI: metadataURI,
             creator: msg.sender,
-            prompts: prompts
+            prompts: prompts,
+            supply: supply
         });
-        templateSupply[templateCount] = supply;
         templatesByCreator[msg.sender].push(templateCount);
         emit TemplateCreated(templateCount, msg.sender, supply, price, metadataURI);
         templateCount++;
@@ -86,6 +86,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
 
     function addInstanceToTemplate(uint256 templateId, uint256 instanceId) external onlyAnkyNotebooks {
         instancesOfTemplate[templateId].push(instanceId);
-        templateSupply[templateId]--;
+        templates[templateId].supply--; // Update supply in the struct.
     }
+
 }

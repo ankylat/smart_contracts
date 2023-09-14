@@ -32,7 +32,7 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     // Track the last page written by the user for each notebook
     mapping(uint256 => uint256) public notebookLastPageWritten;
 
-
+    event FundsTransferred(address recipient, uint256 amount);
     event NotebookMinted(uint256 indexed instanceId, address indexed owner, uint256 indexed templateId);
 
     constructor(address _ankyAirdrop, address _ankyTemplates) ERC721("Anky Notebooks", "ANKYNB") {
@@ -45,7 +45,8 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         require(ankyAirdrop.balanceOf(msg.sender) != 0, "Address needs to own an Anky to mint a notebook");
         // Check which is the address of the anky that the user owns
         address tbaAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
-        require(amount > 0 && amount <= 5, "You can mint between 1 to 5 notebooks");
+        require(tbaAddress != address(0), "Invalid Anky address");
+        require(amount == 1, "You can mint only one notebook at a time");
 
         // This line I don't properly understand.
         AnkyTemplates.NotebookTemplate memory notebookTemplate = ankyTemplates.getTemplate(templateId);
@@ -53,31 +54,32 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         require(notebookTemplate.creator != address(0), "Invalid templateId");
 
                 // Check supply constraints
-        uint256 currentSupply = ankyTemplates.getTemplateSupply(templateId);
+        uint256 currentSupply = notebookTemplate.supply;
         require(currentSupply >= amount, "Insufficient supply");
 
         uint256 totalPrice = notebookTemplate.price * amount;
         require(msg.value >= totalPrice, "Insufficient Ether sent");
         uint256 currentNotebookId = _notebookIds.current();
-        for (uint256 i = 0; i < amount; i++) {
 
-            notebookInstances[currentNotebookId].templateId = templateId;
-            notebookInstances[currentNotebookId].isVirgin = true;
+        notebookInstances[currentNotebookId].templateId = templateId;
+        notebookInstances[currentNotebookId].isVirgin = true;
 
-            _mint(tbaAddress, currentNotebookId);
-            ankyTemplates.addInstanceToTemplate(templateId, currentNotebookId);
-            ankyTbaToOwnedNotebooks[tbaAddress].push(currentNotebookId);
+        _mint(tbaAddress, currentNotebookId);
+        ankyTemplates.addInstanceToTemplate(templateId, currentNotebookId);
+        ankyTbaToOwnedNotebooks[tbaAddress].push(currentNotebookId);
 
-            emit NotebookMinted(currentNotebookId, tbaAddress, templateId);
-            currentNotebookId++;
-        }
+        emit NotebookMinted(currentNotebookId, tbaAddress, templateId);
+        currentNotebookId++;
 
         uint256 creatorShare = (totalPrice * 10) / 100;
         uint256 userShare = (totalPrice * 70) / 100;
 
         // Transfer back part of the money to the creator of the template and to the wallet that is minting.
         payable(notebookTemplate.creator).transfer(creatorShare);
+        emit FundsTransferred(notebookTemplate.creator, creatorShare);
+
         payable(to).transfer(userShare);
+        emit FundsTransferred(to, userShare);
     }
 
     modifier onlyNotebookOwner(uint256 notebookId) {
