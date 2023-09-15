@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 import "./AnkyTemplates.sol";
 
+// The AnkyNotebooks are the ones that are minted from the AnkyTemplates
 contract AnkyNotebooks is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
 
@@ -69,7 +70,8 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         ankyTbaToOwnedNotebooks[tbaAddress].push(currentNotebookId);
 
         emit NotebookMinted(currentNotebookId, tbaAddress, templateId);
-        currentNotebookId++;
+        _notebookIds.increment();
+
 
         uint256 creatorShare = (totalPrice * 10) / 100;
         uint256 userShare = (totalPrice * 70) / 100;
@@ -94,10 +96,11 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         NotebookInstance storage notebookInstance = notebookInstances[notebookId];
 
         // Ensure the page hasn't been written before
-        require(notebookInstance.userPages.length < pageNumber, "Page already written");
+        require(notebookInstance.userPages.length <= pageNumber, "Page already written or invalid page number");
 
-        string memory prompt = ankyTemplates.getTemplatePrompt(notebookInstance.templateId, pageNumber);
-        require(bytes(prompt).length > 0, "No more pages available to write");
+        // Ensure the page is within the limit of the template's prompts
+        AnkyTemplates.NotebookTemplate memory notebookTemplate = ankyTemplates.getTemplate(notebookInstance.templateId);
+        require(pageNumber <= notebookTemplate.numberOfPrompts, "Page number exceeds the number of prompts for this notebook");
 
         if(notebookInstance.isVirgin) {
             notebookInstance.isVirgin = false;
@@ -108,8 +111,14 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
             timestamp: block.timestamp
         }));
 
-        emit PageWritten(notebookId, pageNumber, prompt, arweaveCID, block.timestamp);
+        emit PageWritten(notebookId, pageNumber, arweaveCID, block.timestamp);  // Updated emit based on event structure
         notebookLastPageWritten[notebookId] = pageNumber;
+    }
+
+
+
+    function withdraw() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
     }
 
 
@@ -135,7 +144,7 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         return ankyTbaToOwnedNotebooks[user];
     }
 
-    event PageWritten(uint256 indexed notebookId, uint256 indexed pageNumber, string prompt, string arweaveURL, uint256 timestamp);
+    event PageWritten(uint256 indexed notebookId, uint256 indexed pageNumber, string arweaveURL, uint256 timestamp);
 
 
     function isVirgin(uint256 notebookId) external view returns(bool) {
