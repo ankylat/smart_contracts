@@ -1,51 +1,137 @@
-// AnkyJournals.sol
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
-// The journal is just a long notebook on which you store random writings.
-contract AnkyJournals is Ownable {
+contract AnkyJournals is ERC721Enumerable, Ownable {
+    enum JournalType { Small, Medium, Large }
 
     struct JournalEntry {
-        string content;
-        uint256 timestamp;
+        string cid; // pointer to content on Arweave
+        uint256 timestamp; // timestamp of when it was written
     }
 
-    mapping(address => JournalEntry[]) public userEntries;
+    struct Journal {
+        JournalType journalType;
+        uint8 pagesLeft;
+        string metadataCID; // pointer to metadata on Arweave
+        JournalEntry[] entries;
+    }
+
+    mapping(uint256 => Journal) public journals; // Mapping from token ID to Journal
+    mapping(address => uint256[]) public userJournalIds; // Mapping from user address to list of their journal token IDs
+
     IAnkyAirdrop public ankyAirdrop;
+    uint256 public smallJournalPrice;
+    uint256 public mediumJournalPrice;
+    uint256 public largeJournalPrice;
 
-    event JournalWritten(address indexed user, string content, uint256 timestamp);
+    event JournalAirdropped(uint256 indexed tokenId, address indexed recipient);
+    event JournalMinted(uint256 indexed tokenId, address indexed owner);
+    event JournalWritten(uint256 indexed tokenId, string cid, uint256 timestamp);
 
-    constructor(address _ankyAirdrop) {
+    constructor(address _ankyAirdrop, uint256 _smallPrice, uint256 _mediumPrice, uint256 _largePrice) ERC721("AnkyJournals", "AJ") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
+        smallJournalPrice = _smallPrice;
+        mediumJournalPrice = _mediumPrice;
+        largeJournalPrice = _largePrice;
     }
 
     modifier onlyAnkyOwner() {
-        require(ankyAirdrop.balanceOf(msg.sender) != 0, "You must own an Anky to write a journal entry");
+        require(ankyAirdrop.balanceOf(msg.sender) != 0, "Must own an Anky");
         _;
     }
 
-    function writeJournal(string memory content) external onlyAnkyOwner {
-        JournalEntry[] storage entries = userEntries[msg.sender];
+    function airdropFirstJournal() external onlyAnkyOwner {
+        // Check if the user already owns a journal
+        require(userJournalIds[msg.sender].length == 0, "User already owns a journal");
 
-        // Ensure the user writes only once a day
-        if (entries.length > 0) {
-            JournalEntry storage lastEntry = entries[entries.length - 1];
-            require(block.timestamp - lastEntry.timestamp > 1 days, "You've already written today!");
-        }
+        // Mint the journal (you can decide which type, I assume Small for this example)
+        uint256 tokenId = totalSupply() + 1;
 
-        entries.push(JournalEntry({
-            content: content,
-            timestamp: block.timestamp
-        }));
+        journals[tokenId] = Journal({
+            journalType: JournalType.Small,
+            pagesLeft: 8, // Assuming 8 pages for a small journal
+            metadataCID: "",
+            entries: new JournalEntry[](0)
+        });
 
-        emit JournalWritten(msg.sender, content, block.timestamp);
+        userJournalIds[msg.sender].push(tokenId);
+
+        // Note: Instead of minting to `msg.sender`, we mint to the Anky's bound address
+        _mint(ankyAirdrop.getUsersAnkyAddress(msg.sender), tokenId);
+
+        emit JournalAirdropped(tokenId, msg.sender);
     }
 
-    function getJournalEntries(address user) external view returns(JournalEntry[] memory) {
-        return userEntries[user];
+    function mintJournal(JournalType journalType) external payable onlyAnkyOwner {
+        uint256 cost;
+        uint8 pages;
+
+        if (journalType == JournalType.Small) {
+            pages = 8;
+            cost = smallJournalPrice;
+        } else if (journalType == JournalType.Medium) {
+            pages = 24;
+            cost = mediumJournalPrice;
+        } else {
+            pages = 96;
+            cost = largeJournalPrice;
+        }
+
+        require(msg.value == cost, "Incorrect Ether sent");
+
+        uint256 tokenId = totalSupply() + 1;
+
+        journals[tokenId] = Journal({
+            journalType: journalType,
+            pagesLeft: pages,
+            metadataCID: "",
+            entries: new JournalEntry[](0)
+        });
+
+        userJournalIds[msg.sender].push(tokenId);
+
+        _mint(ankyAirdrop.getUsersAnkyAddress(msg.sender), tokenId);
+
+        uint256 userShare = (msg.value * 70) / 100;
+        payable(msg.sender).transfer(userShare);
+
+        emit JournalMinted(tokenId, msg.sender);
+    }
+
+    function writeJournal(uint256 tokenId, string memory cid) external onlyAnkyOwner {
+        require(ownerOf(tokenId) == msg.sender, "Not the owner of this journal");
+        Journal storage journal = journals[tokenId];
+        require(journal.pagesLeft > 0, "No pages left in this journal");
+
+        journal.entries.push(JournalEntry({
+            cid: cid,
+            timestamp: block.timestamp
+        }));
+        journal.pagesLeft--;
+
+        emit JournalWritten(tokenId, cid, block.timestamp);
+    }
+
+    function getJournal(uint256 tokenId) external view returns (Journal memory) {
+        require(_exists(tokenId), "Invalid tokenId");
+        return journals[tokenId];
+    }
+
+    function getUserJournals(address userAddress) external view returns (uint256[] memory) {
+        return userJournalIds[userAddress];
+    }
+
+    function setJournalPrices(uint256 _smallPrice, uint256 _mediumPrice, uint256 _largePrice) external onlyOwner {
+        smallJournalPrice = _smallPrice;
+        mediumJournalPrice = _mediumPrice;
+        largeJournalPrice = _largePrice;
+    }
+
+    function withdraw() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
     }
 }

@@ -80,6 +80,36 @@ async function main() {
     deploymentFile
   );
 
+  // Deployment of AnkyJournals
+  console.log('Now the AnkyJournals will be deployed');
+  const AnkyJournals = await ethers.deployContract('AnkyJournals', [
+    AnkyAirdrop.target,
+  ]);
+  await AnkyJournals.waitForDeployment();
+  console.log(`AnkyJournals deployed at: ${AnkyJournals.target}`);
+  storeDeploymentData(
+    'AnkyJournals',
+    AnkyJournals.target,
+    signer.address,
+    AnkyJournals.deploymentTransaction().hash,
+    deploymentFile
+  );
+
+  // Deployment of AnkyEulogias
+  console.log('Now the AnkyEulogias will be deployed');
+  const AnkyEulogias = await ethers.deployContract('AnkyEulogias', [
+    AnkyAirdrop.target,
+  ]);
+  await AnkyEulogias.waitForDeployment();
+  console.log(`AnkyEulogias deployed at: ${AnkyEulogias.target}`);
+  storeDeploymentData(
+    'AnkyEulogias',
+    AnkyEulogias.target,
+    signer.address,
+    AnkyEulogias.deploymentTransaction().hash,
+    deploymentFile
+  );
+
   await run('verify:verify', {
     address: Registry.target,
     constructorArguments: [],
@@ -103,6 +133,16 @@ async function main() {
   await run('verify:verify', {
     address: AnkyNotebooks.target,
     constructorArguments: [AnkyAirdrop.target, AnkyTemplates.target],
+  });
+
+  await run('verify:verify', {
+    address: AnkyJournals.target,
+    constructorArguments: [AnkyAirdrop.target],
+  });
+
+  await run('verify:verify', {
+    address: AnkyEulogias.target,
+    constructorArguments: [AnkyAirdrop.target],
   });
 
   console.log('All contracts deployed and verified!');
