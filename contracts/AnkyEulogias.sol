@@ -19,7 +19,6 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
 
     struct Eulogia {
         string metadataURI;
-        bytes32 passwordHash;
         uint256 messageCount;
         uint256 maxMessages;
     }
@@ -27,6 +26,7 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
     Counters.Counter private _eulogiaIds;
     mapping(uint256 => Eulogia) public eulogias;
     mapping(uint256 => mapping(uint256 => Message)) public eulogiaMessages;
+    mapping(address => uint256[]) public userEulogias;
     IAnkyAirdrop public ankyAirdrop;
 
     event EulogiaCreated(uint256 indexed eulogiaId, address indexed owner, string metadataURI);
@@ -36,17 +36,15 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
     }
 
-    function createEulogia(string memory metadataURI, string memory password, uint256 maxMsgs) external {
+    function createEulogia(string memory metadataURI, uint256 maxMsgs) external {
         require(ankyAirdrop.balanceOf(msg.sender) != 0, "Address needs to own an Anky to mint a notebook");
         address tbaAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(tbaAddress != address(0), "Invalid Anky address");
 
         uint256 newEulogiaId = _eulogiaIds.current();
 
-        bytes32 passwordHash = keccak256(abi.encodePacked(password));
         eulogias[newEulogiaId] = Eulogia({
             metadataURI: metadataURI,
-            passwordHash: passwordHash,
             messageCount: 0, // Initialize with zero messages
             maxMessages: maxMsgs
         });
@@ -56,8 +54,7 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
         _eulogiaIds.increment();
     }
 
-    function addMessage(uint256 eulogiaId, string memory password, string memory cid, string memory whoWroteIt) external {
-        require(isValidPassword(eulogiaId, password), "Invalid password");
+    function addMessage(uint256 eulogiaId, string memory cid, string memory whoWroteIt) external {
 
         Eulogia storage eulogia = eulogias[eulogiaId];
         require(eulogia.messageCount < eulogia.maxMessages, "Maximum messages reached for this eulogia.");
@@ -68,7 +65,6 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
             cid: cid,
             timestamp: block.timestamp
         });
-
         eulogiaMessages[eulogiaId][eulogia.messageCount] = newMessage;
         eulogia.messageCount++;
 
@@ -89,10 +85,10 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
         return eulogias[eulogiaId];
     }
 
-    function isValidPassword(uint256 eulogiaId, string memory password) public view returns(bool) {
-        bytes32 providedHash = keccak256(abi.encodePacked(password));
-        return providedHash == eulogias[eulogiaId].passwordHash;
+    function getUserEulogias(address userAddress) external view returns (uint256[] memory) {
+        return userEulogias[userAddress];
     }
+
 
     function mintEulogiaToAnky(uint256 eulogiaId) external {
         address tbaAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);

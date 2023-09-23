@@ -32,11 +32,11 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
     event JournalMinted(uint256 indexed tokenId, address indexed owner);
     event JournalWritten(uint256 indexed tokenId, string cid, uint256 timestamp);
 
-    constructor(address _ankyAirdrop, uint256 _smallPrice, uint256 _mediumPrice, uint256 _largePrice) ERC721("AnkyJournals", "AJ") {
+    constructor(address _ankyAirdrop) ERC721("AnkyJournals", "AJ") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
-        smallJournalPrice = _smallPrice;
-        mediumJournalPrice = _mediumPrice;
-        largeJournalPrice = _largePrice;
+        smallJournalPrice = 0.0001 ether;
+        mediumJournalPrice = 0.0002 ether;
+        largeJournalPrice = 0.0003 ether;
     }
 
     modifier onlyAnkyOwner() {
@@ -44,29 +44,30 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
         _;
     }
 
-    function airdropFirstJournal() external onlyAnkyOwner {
+    function airdropFirstJournal(address userAddress) external onlyOwner {
         // Check if the user already owns a journal
-        require(userJournalIds[msg.sender].length == 0, "User already owns a journal");
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(userAddress);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
+        require(userJournalIds[usersAnkyAddress].length == 0, "User already owns a journal");
         // Mint the journal (you can decide which type, I assume Small for this example)
         uint256 tokenId = totalSupply() + 1;
 
-        journals[tokenId] = Journal({
-            journalType: JournalType.Small,
-            pagesLeft: 8, // Assuming 8 pages for a small journal
-            metadataCID: "",
-            entries: new JournalEntry[](0)
-        });
+        Journal storage journal = journals[tokenId];
+        journal.journalType = JournalType.Small;
+        journal.pagesLeft = 8;
+        journal.metadataCID = "";
 
-        userJournalIds[msg.sender].push(tokenId);
+        userJournalIds[usersAnkyAddress].push(tokenId);
 
-        // Note: Instead of minting to `msg.sender`, we mint to the Anky's bound address
-        _mint(ankyAirdrop.getUsersAnkyAddress(msg.sender), tokenId);
+        _mint(usersAnkyAddress, tokenId);
 
-        emit JournalAirdropped(tokenId, msg.sender);
+        emit JournalAirdropped(tokenId, usersAnkyAddress);
     }
 
     function mintJournal(JournalType journalType) external payable onlyAnkyOwner {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
         uint256 cost;
         uint8 pages;
 
@@ -85,44 +86,52 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
 
         uint256 tokenId = totalSupply() + 1;
 
-        journals[tokenId] = Journal({
-            journalType: journalType,
-            pagesLeft: pages,
-            metadataCID: "",
-            entries: new JournalEntry[](0)
-        });
+        Journal storage journal = journals[tokenId];
+        journal.journalType = journalType;
+        journal.pagesLeft = pages;
+        journal.metadataCID = "";
 
-        userJournalIds[msg.sender].push(tokenId);
+        userJournalIds[usersAnkyAddress].push(tokenId);
 
-        _mint(ankyAirdrop.getUsersAnkyAddress(msg.sender), tokenId);
+        _mint(usersAnkyAddress, tokenId);
 
         uint256 userShare = (msg.value * 70) / 100;
         payable(msg.sender).transfer(userShare);
 
-        emit JournalMinted(tokenId, msg.sender);
+        emit JournalMinted(tokenId, usersAnkyAddress);
     }
 
     function writeJournal(uint256 tokenId, string memory cid) external onlyAnkyOwner {
-        require(ownerOf(tokenId) == msg.sender, "Not the owner of this journal");
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+
+        require(ownerOf(tokenId) == usersAnkyAddress, "Not the owner of this journal");
         Journal storage journal = journals[tokenId];
         require(journal.pagesLeft > 0, "No pages left in this journal");
 
-        journal.entries.push(JournalEntry({
-            cid: cid,
-            timestamp: block.timestamp
-        }));
+        JournalEntry storage newEntry = journal.entries.push();
+        newEntry.cid = cid;
+        newEntry.timestamp = block.timestamp;
+
         journal.pagesLeft--;
 
         emit JournalWritten(tokenId, cid, block.timestamp);
     }
 
     function getJournal(uint256 tokenId) external view returns (Journal memory) {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+
+        require(ownerOf(tokenId) == usersAnkyAddress, "Not the owner of this journal");
         require(_exists(tokenId), "Invalid tokenId");
         return journals[tokenId];
     }
 
-    function getUserJournals(address userAddress) external view returns (uint256[] memory) {
-        return userJournalIds[userAddress];
+    function getUserJournals() external view returns (uint256[] memory) {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+
+        return userJournalIds[usersAnkyAddress];
     }
 
     function setJournalPrices(uint256 _smallPrice, uint256 _mediumPrice, uint256 _largePrice) external onlyOwner {

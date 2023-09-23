@@ -116,7 +116,6 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     }
 
 
-
     function withdraw() external onlyOwner {
         payable(owner()).transfer(address(this).balance);
     }
@@ -126,9 +125,16 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         return notebookInstances[notebookId].userPages[pageNumber];
     }
 
-    function getFullNotebook(uint256 notebookId) external view returns(UserPageContent[] memory pages) {
+
+    function getFullNotebook(uint256 notebookId) external view returns(NotebookInstance memory notebook) {
+
+        // IMPORTANT: ONLY THE USER THAT OWNS THE NOTEBOOK MUST BE ABLE TO FETCH FOR THE NOTEBOOK. THIS IS IMPORTANT FOR PRIVACY MATTERS
         NotebookInstance storage instance = notebookInstances[notebookId];
-        return (instance.userPages);
+        return NotebookInstance({
+            templateId: instance.templateId,
+            userPages: instance.userPages,
+            isVirgin: instance.isVirgin
+        });
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 tokenBatch) internal override {
