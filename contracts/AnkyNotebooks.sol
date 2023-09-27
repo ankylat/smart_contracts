@@ -18,6 +18,7 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
 
     struct NotebookInstance {
         uint256 templateId;
+        uint256 notebookId;
         UserPageContent[] userPages;
         bool isVirgin;
     }
@@ -32,9 +33,11 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     mapping(address => uint256[]) public ankyTbaToOwnedNotebooks;
     // Track the last page written by the user for each notebook
     mapping(uint256 => uint256) public notebookLastPageWritten;
+    mapping(address => uint256[]) public ankyTbaToOwnedVirginNotebooks;
 
     event FundsTransferred(address recipient, uint256 amount);
     event NotebookMinted(uint256 indexed instanceId, address indexed owner, uint256 indexed templateId);
+    event PageWritten(uint256 indexed notebookId, uint256 indexed pageNumber, string arweaveURL, uint256 timestamp);
 
     constructor(address _ankyAirdrop, address _ankyTemplates) ERC721("Anky Notebooks", "ANKYNB") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
@@ -64,10 +67,12 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
 
         notebookInstances[currentNotebookId].templateId = templateId;
         notebookInstances[currentNotebookId].isVirgin = true;
+        notebookInstances[currentNotebookId].notebookId = currentNotebookId;
 
         _mint(tbaAddress, currentNotebookId);
-        ankyTemplates.addInstanceToTemplate(templateId, currentNotebookId);
+        ankyTemplates.mintTemplateInstance(templateId, currentNotebookId);
         ankyTbaToOwnedNotebooks[tbaAddress].push(currentNotebookId);
+        ankyTbaToOwnedVirginNotebooks[tbaAddress].push(currentNotebookId);
 
         emit NotebookMinted(currentNotebookId, tbaAddress, templateId);
         _notebookIds.increment();
@@ -106,6 +111,19 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
             notebookInstance.isVirgin = false;
         }
 
+        if(notebookInstance.isVirgin) {
+            notebookInstance.isVirgin = false;
+            // If this notebook is written for the first time, remove it from virgin notebooks
+            uint256[] storage virginNotebooks = ankyTbaToOwnedVirginNotebooks[msg.sender];
+            for (uint256 i = 0; i < virginNotebooks.length; i++) {
+                if (virginNotebooks[i] == notebookId) {
+                    virginNotebooks[i] = virginNotebooks[virginNotebooks.length - 1];
+                    virginNotebooks.pop();
+                    break;
+                }
+            }
+        }
+
         notebookInstance.userPages.push(UserPageContent({
             arweaveCID: arweaveCID,
             timestamp: block.timestamp
@@ -127,12 +145,14 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
 
 
     function getFullNotebook(uint256 notebookId) external view returns(NotebookInstance memory notebook) {
-
-        // IMPORTANT: ONLY THE USER THAT OWNS THE NOTEBOOK MUST BE ABLE TO FETCH FOR THE NOTEBOOK. THIS IS IMPORTANT FOR PRIVACY MATTERS
+        address tbaAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(tbaAddress != address(0), "Invalid Anky address");
+        require(ownerOf(notebookId) == tbaAddress, "Only the notebook owner can fetch its details");
         NotebookInstance storage instance = notebookInstances[notebookId];
         return NotebookInstance({
             templateId: instance.templateId,
             userPages: instance.userPages,
+            notebookId: instance.notebookId,
             isVirgin: instance.isVirgin
         });
     }
@@ -140,9 +160,7 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 tokenBatch) internal override {
         super._beforeTokenTransfer(from, to, tokenId, tokenBatch);
         // Check if it's a transfer action (not mint or burn)
-        if(from != address(0) && to != address(0)) {
-            require(notebookInstances[tokenId].isVirgin, "Notebook has been written and cannot be transferred directly");
-        }
+        require(notebookInstances[tokenId].isVirgin, "Can't transfer a non-virgin notebook");
     }
 
 
@@ -150,30 +168,11 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         return ankyTbaToOwnedNotebooks[user];
     }
 
-    event PageWritten(uint256 indexed notebookId, uint256 indexed pageNumber, string arweaveURL, uint256 timestamp);
-
-
     function isVirgin(uint256 notebookId) external view returns(bool) {
         return notebookInstances[notebookId].isVirgin;
     }
 
-    function getUserVirginNotebooks(address user) external view returns (uint256[] memory) {
-        uint256[] memory allNotebooks = ankyTbaToOwnedNotebooks[user];
-        uint256 count = 0;
-        for(uint256 i = 0; i < allNotebooks.length; i++) {
-            if(notebookInstances[allNotebooks[i]].isVirgin) {
-                count++;
-            }
-        }
-
-        uint256[] memory virginNotebooks = new uint256[](count);
-        uint256 index = 0;
-        for(uint256 i = 0; i < allNotebooks.length; i++) {
-            if(notebookInstances[allNotebooks[i]].isVirgin) {
-                virginNotebooks[index] = allNotebooks[i];
-                index++;
-            }
-        }
-        return virginNotebooks;
+    function getUserVirginNotebooks(address ankyTbaAddress) external view returns(uint256[] memory) {
+        return ankyTbaToOwnedVirginNotebooks[ankyTbaAddress];
     }
 }

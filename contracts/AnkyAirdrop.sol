@@ -18,8 +18,6 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     // This is the first argument to the registry function to create the TBA (token bound account)
     address public _implementationAddress;
 
-    // Mapping from token ID to metadata URI
-    mapping(uint256 => string) private _tokenURIs;
     // Mapping for storing the address of the TBA (token bound account) associated with the address that owns that anky
     mapping(address => address) public ownerToTBA;
 

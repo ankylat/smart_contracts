@@ -34,33 +34,131 @@ The main contracts of interest are:
 
 ## Contract Descriptions
 
-### AnkyAirdrop.sol
+## AnkyAirdrop Smart Contract
 
-#### Properties:
+The `AnkyAirdrop` contract lies at the foundational layer of the Anky platform, facilitating the airdrop mechanism of the platform's primary NFT – the Anky. Through this smart contract, users who join the platform are seamlessly airdropped the Anky NFT. Furthermore, the contract pushes the boundary of traditional NFTs by enhancing them with ERC6551 capabilities, turning each Anky NFT into a 'Token Bound Account' (TBA) which offers the powerful flexibility of a smart wallet.
 
-- `registry`: A reference to the ERC6551Registry that keeps track of TBAs.
-- `ownerToTBA`: A mapping that relates an NFT owner to its associated TBA.
+### Highlights:
 
-#### Functions:
+- **Airdropping the Anky**: Ensures that each user on the platform has at most one Anky NFT.
+- **Token Bound Account (TBA)**: TBAs are smart wallet functionalities tied to the ownership of an Anky NFT. This is achieved by leveraging the ERC6551 standard.
+- **Decentralized Metadata Management**: The URI for each NFT can be set during minting, granting complete control over metadata management.
+- **Safety and Security**: The contract ensures that users can't accidentally create multiple TBAs for their Anky NFTs, and also safeguards the metadata of each token.
 
-- `airdropNft(address to)`: Airdrops an NFT to a specified address.
-- `createTBAforUsersAnky(address userWallet)`: Creates a TBA for a user's Anky NFT.
-- `getTBA(uint256 tokenId)`: Retrieves the TBA address from the Registry using the tokenId.
-- `getUsersAnkyAddress(address userWallet)`: Retrieves the TBA address of the NFT that a specified user owns.
-- `setTokenURI(uint256 tokenId, string memory newUri)`: Sets or updates the token URI.
-- `getTokenURI(uint256 tokenId)`: Retrieves the token URI.
+In essence, the `AnkyAirdrop` contract plays a pivotal role in the onboarding experience on the Anky platform, by making sure that users not only receive a unique NFT but also gain access to a smart wallet functionality.
 
-### AnkyTemplates.sol
+---
 
-AnkyTemplates is used to define and manage the structure of the notebooks (the templates).
+## AnkyTemplates Smart Contract
 
-The AnkyTemplates smart contract serves as a repository for notebook templates created by users owning an Anky. Every template contains metadata like the creator's address, associated metadata URI, the number of pages it has, its price, and the supply. This contract acts as an ERC1155 token, which means each template has an ID and can have multiple supplies. The instancesOfTemplate mapping provides an efficient way to fetch all notebook instances minted from a particular template. This contract ensures that only valid Anky owners can create templates and integrates with the AnkyAirdrop contract to verify Anky ownership.
+The `AnkyTemplates` smart contract serves as the heart of the Anky platform, acting as a blueprint factory for the creation and management of notebook templates. It is designed to allow users to establish the foundation for notebooks, giving rise to a template-to-notebook structure where a template serves as a precursor to a minted notebook.
+
+### Key Features:
+
+- **Template Creation**: Users, who are holders of the Anky token, can create notebook templates with specific characteristics such as metadata, price, and the number of prompts. However, there are restrictions in place to ensure quality control, including:
+  - Maximum one template creation per user every 24 hours.
+  - An upper cap of 100 notebooks for each template.
+  - Ban mechanism for users exhibiting unfavorable behavior.
+- **Notebook Instance Minting**: A direct relationship exists between the `AnkyTemplates` and `AnkyNotebooks` contracts. When a new instance of a notebook is minted in the `AnkyNotebooks` contract, the supply of the corresponding template in the `AnkyTemplates` contract is decremented.
+- **Flexibility and Control**: The owner of the contract has extended control capabilities, such as modifying the associated `AnkyNotebooks` contract address, and managing (banning/unbanning) creators based on their behavior.
+
+Overall, the `AnkyTemplates` contract ensures that the platform remains robust, scalable, and easy to manage, by bifurcating the logic of template creation and notebook minting.
+
+---
 
 ### AnkyNotebooks.sol
 
 AnkyNotebooks is for the actual instances of notebooks minted from templates. It communicates with AnkyTemplates to get information about the structure of a template.
 
 The AnkyNotebooks smart contract is responsible for minting and managing individual notebook instances based on the templates from the AnkyTemplates contract. As an ERC721 token, every notebook instance is unique, having an associated template ID and a status to determine if any writing has occurred. The contract also provides functionalities for users to write content on notebook pages and to check the content of any written page. For every minted notebook, an event is emitted, and the associated costs are shared with the creator. The contract collaborates with the AnkyAirdrop contract to ensure that only valid Anky owners can mint notebooks and write on them.
+
+# AnkyNotebooks Smart Contract
+
+`AnkyNotebooks` manages unique digital notebooks minted from specific templates. Each notebook is associated with an Anky TBA token.
+
+## Structs
+
+- **UserPageContent**:
+  - `arweaveCID`: URL to the user's answer on Arweave.
+  - `timestamp`: Time when content was added.
+- **NotebookInstance**:
+  - `templateId`: ID of the template.
+  - `notebookId`: Identifier for the notebook.
+  - `userPages`: Array of user's content.
+  - `isVirgin`: Indicates if a notebook is untouched.
+
+## Mappings
+
+- `notebookInstances`: Maps a notebook ID to its instance.
+- `ankyTbaToOwnedNotebooks`: Tracks notebooks owned by an Anky TBA.
+- `notebookLastPageWritten`: Records last page written in each notebook.
+- `ankyTbaToOwnedVirginNotebooks`: Stores virgin notebooks of an Anky TBA.
+
+## Methods
+
+- **mintNotebook**: Allows users to mint notebooks.
+- **writePage**: Allows owners to write on a new page.
+- **withdraw**: Contract owner can withdraw Ether.
+- **getPageContent**: Fetches a notebook page content.
+- **getFullNotebook**: Retrieves full notebook details.
+- **getOwnedNotebooks**: Lists notebooks owned by an Anky TBA.
+- **isVirgin**: Checks if a notebook is virgin.
+- **getUserVirginNotebooks**: Fetches virgin notebooks of an Anky TBA.
+
+## Modifiers
+
+- **onlyNotebookOwner**: Ensures only the notebook owner can execute.
+
+## Events
+
+- **FundsTransferred**: Emitted on fund transfers.
+- **NotebookMinted**: Emitted when a notebook is minted.
+- **PageWritten**: Emitted on new page written.
+
+## Security
+
+- Uses OpenZeppelin library for security and ERC721 functionalities.
+- Implements `Ownable` for owner-only functions.
+
+---
+
+## AnkyJournals Smart Contract
+
+The `AnkyJournals` smart contract is a core component of the Anky platform, dedicated to the management and facilitation of user journals. It offers a flexible system for users to purchase, write in, and manage their own personal or public journal entries, built upon the foundation of decentralization and the Anky token ecosystem.
+
+### Key Features:
+
+- **Journal Airdropping**: As an initial offering, the contract supports the airdropping of a journal to an eligible user. This is intended to engage and reward early adopters or specific participants.
+
+- **Journal Minting**: Depending on their preferences, users can purchase one of three different types of journals - Small, Medium, or Large. Each journal type differs in terms of its page capacity and price. Payments are made in Ether, with a portion going back to the user.
+
+- **Journal Writing**: Users, especially those who hold Anky tokens, can write in their journals. Each journal entry consumes a page, and users can decide if they want their writings to be public or private. If a user chooses to make an entry public, an event is emitted to allow easy retrieval and display on the platform's frontend.
+
+- **Ownership and Control**: The contract extends control capabilities to the owner, empowering them to set journal prices and handle other administrative actions. Additionally, certain actions in the contract are restricted to genuine Anky token holders, ensuring a strong relationship between the Anky ecosystem and the journaling platform.
+
+- **Event-Driven Public Entries**: To avoid on-chain storage overheads and make the platform gas-efficient, public journal entries are handled via events. This allows external systems to listen for and capture these events, making it feasible to display public journal entries chronologically on the frontend without needing to store them on-chain.
+
+- **Journal Retrieval**: Users can retrieve details about their journals, such as the type, remaining pages, and individual entries, thereby giving them a comprehensive view of their writings and remaining capacity.
+
+Overall, the `AnkyJournals` contract ensures a seamless and user-friendly experience for journaling on the Anky platform, while maintaining efficiency, transparency, and integration with the wider Anky ecosystem.
+
+---
+
+## AnkyEulogias Smart Contract
+
+The `AnkyEulogias` smart contract forms an essential part of the Anky platform, enabling users to mint Eulogias, specialized notebooks for commemorating or celebrating events. These Eulogias can be used to gather messages for occasions like birthdays or to mourn the passing of a loved one.
+
+### Key Features:
+
+- **Eulogia Creation**: Only Anky token holders can create a Eulogia. Each Eulogia has metadata and a set limit for the number of messages it can contain.
+- **Message Addition**: Any user can contribute a message to a Eulogia, providing a CID pointing to the actual content hosted on Arweave. They can also provide an alias or name indicating who wrote the message.
+- **Message Retrieval**: Users can retrieve all messages written in a specific Eulogia, and also access details about the Eulogia itself, including its metadata and the number of messages it has.
+- **User-Centric Design**: The contract offers functions for users to see all the Eulogias they own.
+- **Safety and Transparency**: All actions in the contract, from Eulogia creation to message addition, emit events for transparency and easy tracking.
+
+In essence, the `AnkyEulogias` contract provides a decentralized way for users to come together, write, and celebrate or remember, creating a lasting digital legacy on the blockchain.
+
+---
 
 ### ERC6551Registry.sol & ERC6551Account.sol
 
@@ -115,4 +213,3 @@ For testing the system and deploying it on your own:
 1. Make sure you create a .env file with a PRIVATE_KEY environment variable in it. This will be the address that deploys the contracts.
 2. Make sure you have some base goerli eth in the wallet so that you can deploy the contracts.
 3. Run `npx hardhat run scripts/deploy_all_contracts.js --network base-goerli` to deploy all the contracts.
-

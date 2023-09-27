@@ -11,11 +11,13 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
     struct JournalEntry {
         string cid; // pointer to content on Arweave
         uint256 timestamp; // timestamp of when it was written
+        bool isPublic; // true if entry is public
     }
 
     struct Journal {
         JournalType journalType;
         uint8 pagesLeft;
+        uint256 journalId;
         string metadataCID; // pointer to metadata on Arweave
         JournalEntry[] entries;
     }
@@ -31,17 +33,25 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
     event JournalAirdropped(uint256 indexed tokenId, address indexed recipient);
     event JournalMinted(uint256 indexed tokenId, address indexed owner);
     event JournalWritten(uint256 indexed tokenId, string cid, uint256 timestamp);
+    event PublicJournalWritten(uint256 indexed tokenId, string cid, uint256 timestamp);
+    event PagesDepleted(uint256 indexed tokenId);
+
+     modifier onlyAnkyHolder() {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+        _;
+    }
+
+    modifier onlyAnkyOwner() {
+        require(ankyAirdrop.balanceOf(msg.sender) != 0, "Must own an Anky");
+        _;
+    }
 
     constructor(address _ankyAirdrop) ERC721("AnkyJournals", "AJ") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
         smallJournalPrice = 0.0001 ether;
         mediumJournalPrice = 0.0002 ether;
         largeJournalPrice = 0.0003 ether;
-    }
-
-    modifier onlyAnkyOwner() {
-        require(ankyAirdrop.balanceOf(msg.sender) != 0, "Must own an Anky");
-        _;
     }
 
     function airdropFirstJournal(address userAddress) external onlyOwner {
@@ -56,6 +66,7 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
         Journal storage journal = journals[tokenId];
         journal.journalType = JournalType.Small;
         journal.pagesLeft = 8;
+        journal.journalId = tokenId;
         journal.metadataCID = "";
 
         userJournalIds[usersAnkyAddress].push(tokenId);
@@ -65,7 +76,7 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
         emit JournalAirdropped(tokenId, usersAnkyAddress);
     }
 
-    function mintJournal(JournalType journalType) external payable onlyAnkyOwner {
+    function mintJournal(JournalType journalType) external payable onlyAnkyHolder {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
         uint256 cost;
@@ -89,6 +100,7 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
         Journal storage journal = journals[tokenId];
         journal.journalType = journalType;
         journal.pagesLeft = pages;
+        journal.journalId = tokenId;
         journal.metadataCID = "";
 
         userJournalIds[usersAnkyAddress].push(tokenId);
@@ -101,7 +113,7 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
         emit JournalMinted(tokenId, usersAnkyAddress);
     }
 
-    function writeJournal(uint256 tokenId, string memory cid) external onlyAnkyOwner {
+    function writeJournal(uint256 tokenId, string memory cid, bool makePublic) external onlyAnkyOwner {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
@@ -112,18 +124,27 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
         JournalEntry storage newEntry = journal.entries.push();
         newEntry.cid = cid;
         newEntry.timestamp = block.timestamp;
+        newEntry.isPublic = makePublic;
+
+        if (makePublic) {
+            emit PublicJournalWritten(tokenId, cid, block.timestamp);
+        }
 
         journal.pagesLeft--;
+
+        if(journal.pagesLeft == 0) {
+            emit PagesDepleted(tokenId);
+        }
 
         emit JournalWritten(tokenId, cid, block.timestamp);
     }
 
     function getJournal(uint256 tokenId) external view returns (Journal memory) {
+        require(_exists(tokenId), "Invalid tokenId");
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
         require(ownerOf(tokenId) == usersAnkyAddress, "Not the owner of this journal");
-        require(_exists(tokenId), "Invalid tokenId");
         return journals[tokenId];
     }
 
