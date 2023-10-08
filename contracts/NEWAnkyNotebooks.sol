@@ -17,13 +17,13 @@ contract AnkyNotebooks is ERC1155, Ownable {
     // Data structure to represent a Notebook, which can be fungible or non-fungible.
     struct Notebook {
         address creator;  // Address of the notebook's creator.
-        string metadataCID;  // IPFS CID for the notebook's metadata.
+        string metadataCID;  // Arweave CID for the notebook's metadata.
         uint256 originalFungibleNotebookId;  // For non-fungible notebooks, this indicates from which fungible notebook it was derived.
     }
 
     // Data structure to represent a page written inside a non-fungible notebook.
     struct Page {
-        string cid;  // IPFS CID pointing to content where the writing for this page is stored.
+        string cid;  // Arweave CID pointing to content where the writing for this page is stored.
         uint256 timestamp;  // Timestamp of when the page was written.
     }
 
