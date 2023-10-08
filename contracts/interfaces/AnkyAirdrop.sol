@@ -14,4 +14,8 @@ interface IAnkyAirdrop {
 
     // Get the TBA of the anky that is owned by the wallet that is calling the function:
     function getUsersAnkyAddress(address userWallet) external view returns (address);
+
+    // Emit the event for the writing.
+    function registerWriting(string memory writingContainer, string memory cid) external returns (bool);
 }
+

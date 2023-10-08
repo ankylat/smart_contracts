@@ -17,12 +17,26 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     // This is the first argument to the registry function to create the TBA (token bound account)
     address public _implementationAddress;
+    address private ankyNotebooksAddress;
+    address private ankyEulogiasAddress;
+    address private ankyJournalsAddress;
 
     // Mapping for storing the address of the TBA (token bound account) associated with the address that owns that anky
     mapping(address => address) public ownerToTBA;
 
     // EVENTS
     event TBACreated(address indexed user, address indexed tbaAddress, uint256 indexed tokenId);
+    event WritingEvent(
+        uint256 indexed ankyTokenId,
+        string writingContainerType,
+        string cid,
+        uint256 timestamp
+    );
+
+    modifier onlyAllowedContracts() {
+        require(msg.sender == ankyNotebooksAddress || msg.sender == ankyEulogiasAddress || msg.sender == ankyJournalsAddress, "Not allowed");
+        _;
+    }
 
     constructor(address _registry, address _implementation) ERC721("AnkyAirdrop", "ANKY") {
         //This line allows this contract to interact with the registry contract.
@@ -31,12 +45,21 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     }
 
     // Function to airdrop a single NFT to a given address
-   function airdropNft(address to) public onlyOwner returns(uint256) {
+    function airdropNft(address to) public onlyOwner returns(uint256, string memory) {
         require(balanceOf(to) == 0, "Address already owns an Anky");
         uint256 newTokenId = _tokenIds.current();
         _safeMint(to, newTokenId);
         _tokenIds.increment();
-        return newTokenId;
+
+        string memory newTokenUri = tokenURI(newTokenId);
+
+        return (newTokenId, newTokenUri);
+    }
+
+    function setAllowedContracts(address notebooks, address eulogias, address journals) external onlyOwner {
+        ankyNotebooksAddress = notebooks;
+        ankyEulogiasAddress = eulogias;
+        ankyJournalsAddress = journals;
     }
 
 // Function to create a TBA for a user's Anky
@@ -77,6 +100,16 @@ function createTBAforUsersAnky(address userWallet) public returns(address) {
     function getUsersAnkyAddress(address userWallet) public view returns (address) {
         require(balanceOf(userWallet) > 0, "You don't own an Anky");
         return ownerToTBA[userWallet];
+    }
+
+    function registerWriting(string memory writingContainerType, string memory cid) external onlyAllowedContracts returns (bool) {
+        require(balanceOf(msg.sender) != 0, "You don't own an Anky");
+
+        uint256 ankyTokenId = tokenOfOwnerByIndex(msg.sender, 0); // Retrieve token ID of user's Anky
+
+        emit WritingEvent(ankyTokenId, writingContainerType, cid, block.timestamp);
+
+        return true;
     }
 
     // Function to set or update the token URI, only the owner of the contract (anky server) can update the metadata

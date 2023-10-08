@@ -192,11 +192,13 @@ The goal is to develop all of this having in mind the modularity aspect of it. T
 - Deploy the smart contracts running:
 
 ```bash
-npx hardhat run scripts/deploy_anky_airdrop_contracts.js --network base-goerli
+npx hardhat run scripts/deploy_all_contracts.js --network base-goerli
 
-From this command, retrieve the AnkyAidrop deployment address and use it as an argument in the deployNotebooks.js file.
+After running this, you need to:
 
-npx hardhat run scripts/deploy_notebooks.js --network base-goerli
+- Set the notebook address inside the AnkyTemplates contract by using the setAnkyNotebooksAddress function with the deployed AnkyNotebooks.sol address.
+- Enable calls to the AnkyAidrop contract from the other ones by calling the setAllowedContracts with the deployed addresses of these contracts.
+
 ```
 
 - Run the nodejs server on port 3000.

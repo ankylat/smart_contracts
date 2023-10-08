@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
-/**
- * @title AnkyTemplates Contract
- * @dev This contract acts as a blueprint factory for creating and managing notebook templates.
- * Each template acts as a precursor to a minted notebook, with the notebook acting as the practical implementation of the template.
- */
-contract AnkyTemplates is ERC1155Supply, Ownable {
+contract AnkyTemplates is ERC1155, Ownable {
 
     // Maximum allowed templates per creator per day.
     uint256 public constant MAX_TEMPLATES_PER_DAY = 1;
@@ -24,6 +19,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
         address creator;
         string metadataCID;
         uint256 price;
+        uint256 initialSupply;
         uint256 supply;
         uint256 numberOfPrompts;
         uint256 lastCreatedTimestamp; // Timestamp of the last created template
@@ -42,8 +38,9 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
     mapping(address => uint256[]) public templatesByCreator;
     // All the templates in relationship to their id.
     mapping(uint256 => NotebookTemplate) public templates;
-    // This mapping is for fetching all the notebooks that have been minted of a particular template
-    mapping(uint256 => uint256[]) public instancesOfTemplate;
+    // track notebooks minted by each user from each template
+    mapping(address => mapping(uint256 => uint256)) public userNotebookCounts;
+
 
     event TemplateCreated(uint256 templateId, address creator, uint256 supply, uint256 price, string metadataCID);
 
@@ -95,6 +92,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
             price: price,
             metadataCID: metadataCID,
             creator: msg.sender,
+            initialSupply: supply,
             supply: supply,
             numberOfPrompts:numberOfPrompts,
             lastCreatedTimestamp: block.timestamp
@@ -117,10 +115,14 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
         return templatesByCreator[creator];
     }
 
+    function mintTemplateToken(address account, uint256 templateId, uint256 amount, bytes memory data) external onlyAnkyNotebooks {
+        require(templates[templateId].supply - amount >= 0, "There is not enough templates left");
+        _mint(account, templateId, amount, data);
+        uint256 currentSupply = templates[templateId].supply;
+        templates[templateId].supply =  currentSupply - amount;
+    }
+
     // Called when an instance of a template is being minted.
-    function mintTemplateInstance(uint256 templateId, uint256 instanceId) external onlyAnkyNotebooks {
-        require(templates[templateId].supply > 0, "All instances of this template have been minted");
-        instancesOfTemplate[templateId].push(instanceId);
-        templates[templateId].supply--;
+    function mintTemplateInstance(uint256 templateId) external onlyAnkyNotebooks {
     }
 }

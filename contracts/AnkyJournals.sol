@@ -32,8 +32,6 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
 
     event JournalAirdropped(uint256 indexed tokenId, address indexed recipient);
     event JournalMinted(uint256 indexed tokenId, address indexed owner);
-    event JournalWritten(uint256 indexed tokenId, string cid, uint256 timestamp);
-    event PublicJournalWritten(uint256 indexed tokenId, string cid, uint256 timestamp);
     event PagesDepleted(uint256 indexed tokenId);
 
      modifier onlyAnkyHolder() {
@@ -113,30 +111,28 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
         emit JournalMinted(tokenId, usersAnkyAddress);
     }
 
-    function writeJournal(uint256 tokenId, string memory cid, bool makePublic) external onlyAnkyOwner {
+    function writeJournalPage(uint256 journalId, string memory cid, bool isPublic) external onlyAnkyOwner {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
-        require(ownerOf(tokenId) == usersAnkyAddress, "Not the owner of this journal");
-        Journal storage journal = journals[tokenId];
+        require(ownerOf(journalId) == usersAnkyAddress, "Not the owner of this journal");
+        Journal storage journal = journals[journalId];
         require(journal.pagesLeft > 0, "No pages left in this journal");
 
         JournalEntry storage newEntry = journal.entries.push();
         newEntry.cid = cid;
         newEntry.timestamp = block.timestamp;
-        newEntry.isPublic = makePublic;
-
-        if (makePublic) {
-            emit PublicJournalWritten(tokenId, cid, block.timestamp);
-        }
+        newEntry.isPublic = isPublic;
 
         journal.pagesLeft--;
 
         if(journal.pagesLeft == 0) {
-            emit PagesDepleted(tokenId);
+            emit PagesDepleted(journalId);
         }
 
-        emit JournalWritten(tokenId, cid, block.timestamp);
+        if (isPublic) {
+            ankyAirdrop.registerWriting("journal", cid);
+        }
     }
 
     function getJournal(uint256 tokenId) external view returns (Journal memory) {
