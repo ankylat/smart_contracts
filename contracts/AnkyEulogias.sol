@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
-contract AnkyEulogias is ERC1155, Ownable {
+contract AnkyEulogias is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
 
     struct Message {
@@ -33,7 +33,7 @@ contract AnkyEulogias is ERC1155, Ownable {
     event EulogiaCreated(uint256 indexed eulogiaId, address indexed owner, string metadataURI);
     event MessageAdded(uint256 indexed eulogiaId, address indexed writer, string cid);
 
-    constructor(address _ankyAirdrop) ERC1155("Anky Eulogias URI {id}.json") {
+    constructor(address _ankyAirdrop) ERC721("Anky Eulogias", "AE") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
     }
 
@@ -44,7 +44,7 @@ contract AnkyEulogias is ERC1155, Ownable {
     }
 
     function createEulogia(string memory metadataURI, uint256 maxMsgs) external {
-        require(maxMsgs <= 100, "Max messages for a Eulogia is 100");
+        require(maxMsgs <= 500, "Max messages for a Eulogia is 500");
         require(ankyAirdrop.balanceOf(msg.sender) != 0, "Address needs to own an Anky to mint a notebook");
 
         address usersAnkyAddress = _getUserAnkyAddress();
@@ -53,13 +53,14 @@ contract AnkyEulogias is ERC1155, Ownable {
         eulogias[newEulogiaId].metadataURI = metadataURI;
         eulogias[newEulogiaId].maxMessages = maxMsgs;
 
-        _mint(usersAnkyAddress, newEulogiaId, 1, ""); // Mint 1 token of the given ID
+        _mint(usersAnkyAddress, newEulogiaId); // Mint 1 token of the given ID
         userEulogias[usersAnkyAddress].push(newEulogiaId);
         emit EulogiaCreated(newEulogiaId, msg.sender, metadataURI);
         _eulogiaIds.increment();
     }
 
     function writeEulogiaPage(uint256 eulogiaId, string memory cid, string memory whoWroteIt, bool isPublic, bool wantsToMint) external {
+        address usersAnkyAddress = _getUserAnkyAddress();
         Eulogia storage eulogia = eulogias[eulogiaId];
         require(eulogia.messages.length < eulogia.maxMessages, "Maximum messages reached for this eulogia.");
 
@@ -75,7 +76,7 @@ contract AnkyEulogias is ERC1155, Ownable {
         emit MessageAdded(eulogiaId, msg.sender, cid);
 
         if(isPublic){
-            ankyAirdrop.registerWriting("eulogia", cid);
+            ankyAirdrop.registerWriting(usersAnkyAddress,"eulogia", cid);
         }
 
         if (wantsToMint) {
@@ -86,7 +87,8 @@ contract AnkyEulogias is ERC1155, Ownable {
     function _mintEulogiaNFT(uint256 eulogiaId) internal {
         address usersAnkyAddress = _getUserAnkyAddress();
         require(_isEulogiaWriter(usersAnkyAddress, eulogiaId), "Only writers of this Eulogia can mint.");
-        _mint(usersAnkyAddress, eulogiaId, 1, ""); // Mint 1 token of the given ID
+        require(balanceOf(usersAnkyAddress) == 0, "You already own a copy of this eulogia");
+        _mint(usersAnkyAddress, eulogiaId); // Mint 1 token of the given ID
     }
 
     function getAllMessages(uint256 eulogiaId) external view returns(Message[] memory) {
@@ -137,7 +139,7 @@ contract AnkyEulogias is ERC1155, Ownable {
     function mintEulogiaToAnky(uint256 eulogiaId) external {
         address usersAnkyAddress = _getUserAnkyAddress();
         require(_isEulogiaWriter(usersAnkyAddress, eulogiaId), "Only writers of this Eulogia can mint.");
-        _mint(usersAnkyAddress, eulogiaId, 1, ""); // Mint 1 token of the given ID
+        _mint(usersAnkyAddress, eulogiaId); // Mint 1 token of the given ID
     }
 
     function _isEulogiaWriter(address writersAnkyAddress, uint256 eulogiaId) internal view returns (bool) {

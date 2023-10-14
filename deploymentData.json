@@ -1,0 +1,37 @@
+{
+  "ERC6551Registry": {
+    "address": "0xcb39BEfB5d7dc730e5A73dF55ba166aAfBc5c30C",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0x2fcdc0c7273222494e1fc9a210ddb81799243dcb8d20efd63572e1e17b18a465"
+  },
+  "ERC6551Account": {
+    "address": "0xDe88b7Ee1BFe58d8e047185744812142F7902ed8",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0x485d13568ed4ed8be914b499bd447c376c8c271d014606395d3f06ed15d43166"
+  },
+  "AnkyAirdrop": {
+    "address": "0xd58c4B5cAeF1FeB906A6a49955d43B81533E1dF4",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0x629aa5e3254be0124d637029791dde470ca51da2c518c7353e849d7ef299a843"
+  },
+  "AnkyTemplates": {
+    "address": "0xA624f4c2dB5cc6e80adD41930f07D72ea914d515",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0xc4f28b380b65f93990631195b701890158e4e6390b41c6ed1b1eb3e3fd4cf64b"
+  },
+  "AnkyNotebooks": {
+    "address": "0xb1947044656977bA6817c64818b75030Eb77a9Cb",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0x22053ba44b7e4a0d6375bdf505b58d381aa4b81675beffcfcd357a2d375e1557"
+  },
+  "AnkyJournals": {
+    "address": "0xeB22fcDFBA7430A7269285703F95d86c9a4c511E",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0xd5f8af6602a8076e83ca596381a3b9147773b73ebcb3e5b0150e4943c6a65858"
+  },
+  "AnkyEulogias": {
+    "address": "0x93Ed4DbcFa66481B721493ba48A508b970daF1A3",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0xd944d49dbb0eb509f47203828d32bc213c6bdb3ee1edf2ab3c4c604ec05fbe6c"
+  }
+}

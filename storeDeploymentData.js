@@ -1,35 +1,31 @@
+// storeDeploymentData.js
 const fs = require('fs');
+const path = require('path');
+const deploymentFilePath = path.join(__dirname, 'deploymentData.json');
+
 function storeDeploymentData(
   contractName,
-  contractAddress,
+  address,
   deployer,
   deploymentHash,
   deploymentFile
 ) {
-  const deploymentData = {
+  let existingData = {};
+  if (fs.existsSync(deploymentFilePath)) {
+    const fileContent = fs.readFileSync(deploymentFilePath, 'utf8');
+    if (fileContent) {
+      existingData = JSON.parse(fileContent);
+    }
+  }
+  const updatedData = {
+    ...existingData,
     [contractName]: {
-      address: contractAddress,
-      deployer: deployer,
-      deploymentHash: deploymentHash,
+      address,
+      deployer,
+      deploymentHash,
     },
   };
-
-  if (!fs.existsSync(deploymentFile)) {
-    fs.closeSync(fs.openSync(deploymentFile, 'w'));
-  }
-
-  const file = fs.readFileSync(deploymentFile);
-
-  if (file.length == 0) {
-    fs.writeFileSync(deploymentFile, JSON.stringify([deploymentData]));
-    console.log(`Saved deployment data to a new file: ${deploymentFile}`);
-  } else {
-    const json = JSON.parse(file.toString());
-    json.push(deploymentData);
-    console.log(json);
-    fs.writeFileSync(deploymentFile, JSON.stringify(json));
-    console.log(`Deployment data saved to: ${deploymentFile}`);
-  }
+  fs.writeFileSync(deploymentFilePath, JSON.stringify(updatedData, null, 2));
 }
 
 module.exports = storeDeploymentData;

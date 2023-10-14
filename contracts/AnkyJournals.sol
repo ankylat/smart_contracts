@@ -2,10 +2,14 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
 contract AnkyJournals is ERC721Enumerable, Ownable {
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIdCounter;
+
     enum JournalType { Small, Medium, Large }
 
     struct JournalEntry {
@@ -57,9 +61,10 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(userAddress);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
-        require(userJournalIds[usersAnkyAddress].length == 0, "User already owns a journal");
+        require(balanceOf(usersAnkyAddress) == 0, "User already owns a journal");
         // Mint the journal (you can decide which type, I assume Small for this example)
-        uint256 tokenId = totalSupply() + 1;
+        uint256 tokenId = _tokenIdCounter.current() + 1;
+        _tokenIdCounter.increment();
 
         Journal storage journal = journals[tokenId];
         journal.journalType = JournalType.Small;
@@ -130,8 +135,8 @@ contract AnkyJournals is ERC721Enumerable, Ownable {
             emit PagesDepleted(journalId);
         }
 
-        if (isPublic) {
-            ankyAirdrop.registerWriting("journal", cid);
+        if (true) {
+            ankyAirdrop.registerWriting(usersAnkyAddress, "journal", cid);
         }
     }
 

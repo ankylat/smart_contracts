@@ -1,44 +1,22 @@
 const { ethers } = require('hardhat');
-const { deploymentFile } = require('../config');
-const storeDeploymentData = require('../storeDeploymentData');
 
 async function deploy() {
-  console.log('Starting the notebooks contracts deployment...');
   const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  const ANKY_AIRDROP_ADDRESS = '0x61E8537532443f49aFC73E71B014D07c13cDDca2';
-  console.log('Now the templates will be deployed');
-  const AnkyTemplates = await ethers.deployContract('AnkyTemplates', [
-    ANKY_AIRDROP_ADDRESS,
+  const ANKY_AIRDROP_ADDRESS = '0x7e966baBF5d8f8A03e9261A5250dDDc935fB98AB';
+  console.log('in here');
+  const AnkyEulogias = await ethers.deployContract('AnkyEulogias', [
+    '0x7e966baBF5d8f8A03e9261A5250dDDc935fB98AB',
   ]);
-  await AnkyTemplates.waitForDeployment();
-  const AnkyTemplatesAddress = AnkyTemplates.target;
-  console.log(`Deployed templates contract at: ${AnkyTemplatesAddress}`);
-  const AnkyTemplatesDeploymentHash =
-    AnkyTemplates.deploymentTransaction().hash;
-  storeDeploymentData(
-    'AnkyTemplates',
-    AnkyTemplatesAddress,
-    signer.address,
-    AnkyTemplatesDeploymentHash,
-    deploymentFile
-  );
+  console.log('the anky eulogias is: ', AnkyEulogias);
 
-  console.log('Now the notebooks will be deployed');
-  const AnkyNotebooks = await ethers.deployContract('AnkyNotebooks', [
-    ANKY_AIRDROP_ADDRESS,
-    AnkyTemplatesAddress,
-  ]);
-  await AnkyNotebooks.waitForDeployment();
-  const AnkyNotebooksAddress = AnkyNotebooks.target;
-  console.log(`Deployed notebooks contract at: ${AnkyNotebooksAddress}`);
-  const AnkyNotebooksDeploymentHash =
-    AnkyNotebooks.deploymentTransaction().hash;
+  await AnkyEulogias.waitForDeployment();
+  console.log(`AnkyEulogias deployed at: ${AnkyEulogias.target}`);
   storeDeploymentData(
-    'AnkyNotebooks',
-    AnkyNotebooksAddress,
+    'AnkyEulogias',
+    AnkyEulogias.target,
     signer.address,
-    AnkyNotebooksDeploymentHash,
+    AnkyEulogias.deploymentTransaction().hash,
     deploymentFile
   );
 }

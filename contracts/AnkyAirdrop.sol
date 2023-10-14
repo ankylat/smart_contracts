@@ -23,6 +23,7 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     // Mapping for storing the address of the TBA (token bound account) associated with the address that owns that anky
     mapping(address => address) public ownerToTBA;
+    mapping(address => uint256) private tbaToAnkyIndex;
 
     // EVENTS
     event TBACreated(address indexed user, address indexed tbaAddress, uint256 indexed tokenId);
@@ -44,8 +45,9 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         _implementationAddress = _implementation;
     }
 
-    // Function to airdrop a single NFT to a given address
-    function airdropNft(address to) public onlyOwner returns(uint256, string memory) {
+    // Function to airdrop a single NFT to a given address callWithSyncFee
+    function airdropNft(address to) public returns(uint256, string memory) {
+        // Add a check that needs a password or something.
         require(balanceOf(to) == 0, "Address already owns an Anky");
         uint256 newTokenId = _tokenIds.current();
         _safeMint(to, newTokenId);
@@ -62,28 +64,29 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         ankyJournalsAddress = journals;
     }
 
-// Function to create a TBA for a user's Anky
-function createTBAforUsersAnky(address userWallet) public returns(address) {
-    require(balanceOf(userWallet) != 0, "You don't own an Anky");
-    require(ownerToTBA[userWallet] == address(0), "TBA already created for this Anky");
+    // Function to create a TBA for a user's Anky callWithSyncFee from gelato (this one doesnt )
+    function createTBAforUsersAnky(address userWallet) public returns(address) {
+        require(balanceOf(userWallet) != 0, "You don't own an Anky");
+        require(ownerToTBA[userWallet] == address(0), "TBA already created for this Anky");
 
-    uint256 tokenId = tokenOfOwnerByIndex(userWallet, 0); // Retrieve token ID of user's Anky
+        uint256 tokenId = tokenOfOwnerByIndex(userWallet, 0); // Retrieve token ID of user's Anky
 
-    address tba = registry.createAccount(
-        _implementationAddress,
-        block.chainid,
-        address(this),
-        tokenId,
-        0,       // salt
-        bytes("") // initData
-    );
+        address tba = registry.createAccount(
+            _implementationAddress,
+            block.chainid,
+            address(this),
+            tokenId,
+            0,       // salt
+            bytes("") // initData
+        );
 
-    ownerToTBA[userWallet] = tba;
+        ownerToTBA[userWallet] = tba;
+        tbaToAnkyIndex[tba] = tokenId;
 
-    emit TBACreated(userWallet, tba, tokenId);
+        emit TBACreated(userWallet, tba, tokenId);
 
-    return tba;
-}
+        return tba;
+    }
 
     // Function to get the TBA address from the Registry by tokenId
     function getTBA(uint256 tokenId) public view returns (address) {
@@ -102,10 +105,8 @@ function createTBAforUsersAnky(address userWallet) public returns(address) {
         return ownerToTBA[userWallet];
     }
 
-    function registerWriting(string memory writingContainerType, string memory cid) external onlyAllowedContracts returns (bool) {
-        require(balanceOf(msg.sender) != 0, "You don't own an Anky");
-
-        uint256 ankyTokenId = tokenOfOwnerByIndex(msg.sender, 0); // Retrieve token ID of user's Anky
+    function registerWriting(address usersAnkyAddress, string memory writingContainerType, string memory cid) external onlyAllowedContracts returns (bool) {
+        uint256 ankyTokenId = tbaToAnkyIndex[usersAnkyAddress]; // Retrieve token ID of user's Anky
 
         emit WritingEvent(ankyTokenId, writingContainerType, cid, block.timestamp);
 

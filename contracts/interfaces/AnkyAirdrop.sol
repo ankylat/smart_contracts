@@ -16,6 +16,6 @@ interface IAnkyAirdrop {
     function getUsersAnkyAddress(address userWallet) external view returns (address);
 
     // Emit the event for the writing.
-    function registerWriting(string memory writingContainer, string memory cid) external returns (bool);
+    function registerWriting(address usersAnkyAddress, string memory writingContainer, string memory cid) external returns (bool);
 }
 
