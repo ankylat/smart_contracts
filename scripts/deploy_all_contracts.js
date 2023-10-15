@@ -110,6 +110,21 @@ async function main() {
     deploymentFile
   );
 
+  // Deployment of AnkyDementor
+  console.log('Now the AnkyDementor will be deployed');
+  const AnkyDementor = await ethers.deployContract('AnkyDementor', [
+    AnkyAirdrop.target,
+  ]);
+  await AnkyDementor.waitForDeployment();
+  console.log(`AnkyEulogias deployed at: ${AnkyDementor.target}`);
+  storeDeploymentData(
+    'AnkyDementor',
+    AnkyDementor.target,
+    signer.address,
+    AnkyDementor.deploymentTransaction().hash,
+    deploymentFile
+  );
+
   await run('verify:verify', {
     address: Registry.target,
     constructorArguments: [],
@@ -142,6 +157,11 @@ async function main() {
 
   await run('verify:verify', {
     address: AnkyEulogias.target,
+    constructorArguments: [AnkyAirdrop.target],
+  });
+
+  await run('verify:verify', {
+    address: AnkyDementor.target,
     constructorArguments: [AnkyAirdrop.target],
   });
 

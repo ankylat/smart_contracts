@@ -1,4 +1,4 @@
-const deploymentFile = 'deploymentData.json';
+const deploymentFile = './deploymentData.json';
 
 module.exports = {
   deploymentFile,

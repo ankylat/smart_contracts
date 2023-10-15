@@ -13,7 +13,8 @@ contract AnkyDementor is ERC721Enumerable, Ownable {
     struct DementorPage {
         string promptCID;
         string userWritingCID;
-        uint256 timestamp;
+        uint256 creationTimestamp;
+        uint256 writingTimestamp;
     }
 
     struct DementorNotebook {
@@ -22,7 +23,7 @@ contract AnkyDementor is ERC721Enumerable, Ownable {
         uint256 currentPage;
     }
 
-    mapping(uint256 => DementorNotebook) public dementorNotebooks;
+    mapping(uint256 => DementorNotebook) private dementorNotebooks;
     IAnkyAirdrop public ankyAirdrop;
 
     event DementorNotebookCreated(uint256 indexed tokenId, address indexed owner);
@@ -36,34 +37,29 @@ contract AnkyDementor is ERC721Enumerable, Ownable {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
     }
 
-    function createAnkyDementorNotebook(string memory introCID) external onlyAnkyHolder {
+    function createAnkyDementorNotebook(string memory firstPageCid) external onlyAnkyHolder {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+        require(balanceOf(usersAnkyAddress) == 0, "You already own your anky dementor");
+
         uint256 tokenId = _notebookIdCounter.current() + 1;
         _notebookIdCounter.increment();
 
         DementorNotebook storage notebook = dementorNotebooks[tokenId];
-        notebook.introCID = introCID;
-        notebook.currentPage = 1;
+        DementorPage memory firstPage = DementorPage({
+            promptCID: firstPageCid,
+            userWritingCID: "",
+            creationTimestamp: block.timestamp,
+            writingTimestamp: 0
+        });
+        notebook.pages.push(firstPage);
+        // THIS NEEDS TO BE UPDATED
+        notebook.introCID = firstPageCid;
+        notebook.currentPage = 0;
 
-        _mint(msg.sender, tokenId);
+        _mint(usersAnkyAddress, tokenId);
 
-        emit DementorNotebookCreated(tokenId, msg.sender);
-    }
-
-    function writeDementorPage(uint256 dementorNotebookId, string memory userWritingCID, string memory nextPromptCID) external onlyAnkyHolder {
-        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
-        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
-
-        require(ownerOf(dementorNotebookId) == usersAnkyAddress, "Not the owner of this dementor notebook");
-
-        DementorNotebook storage notebook = dementorNotebooks[dementorNotebookId];
-        DementorPage storage currentPage = notebook.pages[notebook.currentPage];
-        currentPage.userWritingCID = userWritingCID;
-        currentPage.timestamp = block.timestamp;
-
-        DementorPage storage nextPage = notebook.pages.push();
-        nextPage.promptCID = nextPromptCID;
-
-        notebook.currentPage++;
+        emit DementorNotebookCreated(tokenId, usersAnkyAddress);
     }
 
     function getCurrentPage(uint256 dementorNotebookId) external view returns (DementorPage memory) {
@@ -75,6 +71,24 @@ contract AnkyDementor is ERC721Enumerable, Ownable {
 
         DementorNotebook storage notebook = dementorNotebooks[dementorNotebookId];
         return notebook.pages[notebook.currentPage];
+    }
+
+    function writeDementorPage(uint256 dementorNotebookId, string memory userWritingCID, string memory nextPromptCID) external onlyAnkyHolder {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+
+        require(ownerOf(dementorNotebookId) == usersAnkyAddress, "Not the owner of this dementor notebook");
+
+        DementorNotebook storage notebook = dementorNotebooks[dementorNotebookId];
+        DementorPage storage currentPage = notebook.pages[notebook.currentPage];
+        currentPage.userWritingCID = userWritingCID;
+        currentPage.writingTimestamp = block.timestamp;
+
+        DementorPage storage nextPage = notebook.pages.push();
+        nextPage.promptCID = nextPromptCID;
+        nextPage.creationTimestamp = block.timestamp;
+
+        notebook.currentPage++;
     }
 
     function doesUserOwnAnkyDementor() external view returns (bool) {
