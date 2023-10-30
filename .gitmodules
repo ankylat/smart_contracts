@@ -1,0 +1,3 @@
+[submodule "lib/tokenbound"]
+	path = lib/tokenbound
+	url = https://github.com/tokenbound/contracts
