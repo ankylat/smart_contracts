@@ -20,7 +20,7 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
     uint256 public constant DAY_IN_SECONDS = 86400;
 
     struct NotebookTemplate {
-        uint256 templateId;
+        uint32 templateId;
         address creator;
         string metadataCID;
         uint256 price;
@@ -36,16 +36,15 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
 
     // State variables
     address internal ankyNotebooksAddress;
-    uint256 public templateCount = 0;
 
     // All the templates that a particular person has added.
-    mapping(address => uint256[]) public templatesByCreator;
+    mapping(address => uint32[]) public templatesByCreator;
     // All the templates in relationship to their id.
-    mapping(uint256 => NotebookTemplate) public templates;
+    mapping(uint32 => NotebookTemplate) public templates;
     // This mapping is for fetching all the notebooks that have been minted of a particular template
-    mapping(uint256 => uint256[]) public instancesOfTemplate;
+    mapping(uint32 => uint32[]) public instancesOfTemplate;
 
-    event TemplateCreated(uint256 templateId, address creator, uint256 supply, uint256 price, string metadataCID);
+    event TemplateCreated(uint32 templateId, address creator, uint256 supply, uint256 price, string metadataCID);
 
     constructor(address _ankyAirdrop) ERC1155("https://api.anky.io/templates/{id}.json") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
@@ -78,20 +77,19 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
     }
 
     // Return current supply of a particular template.
-    function getTemplateCurrentSupply(uint256 templateId) external view returns (uint256) {
+    function getTemplateCurrentSupply(uint32 templateId) external view returns (uint256) {
         return templates[templateId].supply;
     }
 
     // Create a new template.
-    function createTemplate(uint256 price, string memory metadataCID, uint256 supply, uint256 numberOfPrompts) external notBanned {
+    function createTemplate(uint256 price, string memory metadataCID, uint256 supply, uint256 numberOfPrompts, uint256 randomUID ) external notBanned {
         require(supply > 0 && supply <= MAX_NOTEBOOKS_PER_TEMPLATE, "Invalid supply");
         require(ankyAirdrop.balanceOf(msg.sender) != 0, "You must own an Anky to create a notebook template");
 
-        // uint256 lastTemplateTimestamp = templatesByCreator[msg.sender].length > 0 ? templates[templatesByCreator[msg.sender][templatesByCreator[msg.sender].length - 1]].lastCreatedTimestamp : 0;
-        // require(block.timestamp - lastTemplateTimestamp >= DAY_IN_SECONDS, "You can only create one template per day");
+        uint32 newTemplateId = uint32(bytes4(keccak256(abi.encodePacked(msg.sender, randomUID))));
 
-        templates[templateCount] = NotebookTemplate({
-            templateId: templateCount,
+        templates[newTemplateId] = NotebookTemplate({
+            templateId: newTemplateId,
             price: price,
             metadataCID: metadataCID,
             creator: msg.sender,
@@ -100,25 +98,24 @@ contract AnkyTemplates is ERC1155Supply, Ownable {
             lastCreatedTimestamp: block.timestamp
         });
 
-        templatesByCreator[msg.sender].push(templateCount);
-        emit TemplateCreated(templateCount, msg.sender, supply, price, metadataCID);
-        templateCount++;
+        templatesByCreator[msg.sender].push(newTemplateId);
+        emit TemplateCreated(newTemplateId, msg.sender, supply, price, metadataCID);
     }
 
     function withdraw() external onlyOwner {
         payable(owner()).transfer(address(this).balance);
     }
 
-    function getTemplate(uint256 templateId) external view returns (NotebookTemplate memory) {
+    function getTemplate(uint32 templateId) external view returns (NotebookTemplate memory) {
         return templates[templateId];
     }
 
-    function getTemplatesByCreator(address creator) external view returns(uint256[] memory) {
+    function getTemplatesByCreator(address creator) external view returns(uint32[] memory) {
         return templatesByCreator[creator];
     }
 
     // Called when an instance of a template is being minted.
-    function mintTemplateInstance(uint256 templateId, uint256 instanceId) external onlyAnkyNotebooks {
+    function mintTemplateInstance(uint32 templateId, uint32 instanceId) external onlyAnkyNotebooks {
         require(templates[templateId].supply > 0, "All instances of this template have been minted");
         instancesOfTemplate[templateId].push(instanceId);
         templates[templateId].supply--;

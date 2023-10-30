@@ -7,13 +7,12 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
 contract AnkyDementor is ERC721Enumerable, Ownable {
-    using Counters for Counters.Counter;
-    Counters.Counter private _notebookIdCounter;
+    uint256 public dementorPrice;
 
     struct DementorPage {
+        uint256 creationTimestamp;
         string promptCID;
         string userWritingCID;
-        uint256 creationTimestamp;
         uint256 writingTimestamp;
     }
 
@@ -21,48 +20,63 @@ contract AnkyDementor is ERC721Enumerable, Ownable {
         string introCID;
         DementorPage[] pages;
         uint256 currentPage;
+        uint256 dementorId;
     }
 
-    mapping(uint256 => DementorNotebook) private dementorNotebooks;
+    // CHANGE THIS MAPPING FROM PUBLIC TO PRIVATE IN PRODUCTION
+    mapping(address => uint256[]) public userDementorIds; // Mapping from user address to list of their dementor token IDs
+    mapping(uint256 => DementorNotebook) public dementorNotebooks;
     IAnkyAirdrop public ankyAirdrop;
 
-    event DementorNotebookCreated(uint256 indexed tokenId, address indexed owner);
-
-    modifier onlyAnkyHolder() {
-        require(ankyAirdrop.balanceOf(msg.sender) != 0, "You must own an Anky");
-        _;
-    }
+    event DementorNotebookCreated(uint256 indexed dementorId, address indexed owner);
 
     constructor(address _ankyAirdrop) ERC721("AnkyDementor", "AD") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
+        dementorPrice = 0.0001 ether;  // Setting the price to 0.001 ETH
     }
 
-    function createAnkyDementorNotebook(string memory firstPageCid) external onlyAnkyHolder {
+    modifier onlyAnkyHolder() {
+        require(ankyAirdrop.balanceOf(msg.sender) > 0, "You must own an Anky");
+        _;
+    }
+
+    function getUsersAnky(address query) external view returns (address) {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(query);
+        return usersAnkyAddress;
+    }
+
+    function setDementorPrice(uint256 _price) external onlyOwner {
+        dementorPrice = _price;
+    }
+
+    function createAnkyDementorNotebook(string memory firstPageCid, uint256 randomUID) payable external  {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
-        require(balanceOf(usersAnkyAddress) == 0, "You already own your anky dementor");
 
-        uint256 tokenId = _notebookIdCounter.current() + 1;
-        _notebookIdCounter.increment();
+        require(msg.value >= dementorPrice, "Incorrect eth amount sent");
 
-        DementorNotebook storage notebook = dementorNotebooks[tokenId];
+        uint256 newDementorId = uint256(bytes32(keccak256(abi.encodePacked(msg.sender, randomUID))));
+
+        DementorNotebook storage newDementorNotebook = dementorNotebooks[newDementorId];
         DementorPage memory firstPage = DementorPage({
             promptCID: firstPageCid,
             userWritingCID: "",
             creationTimestamp: block.timestamp,
             writingTimestamp: 0
         });
-        notebook.pages.push(firstPage);
-        // THIS NEEDS TO BE UPDATED
-        notebook.introCID = firstPageCid;
-        notebook.currentPage = 0;
+        newDementorNotebook.pages.push(firstPage);
 
-        _mint(usersAnkyAddress, tokenId);
+        newDementorNotebook.introCID = firstPageCid;
+        newDementorNotebook.currentPage = 0;
+        newDementorNotebook.dementorId = newDementorId;
 
-        emit DementorNotebookCreated(tokenId, usersAnkyAddress);
+        _mint(usersAnkyAddress, newDementorId);
+        userDementorIds[usersAnkyAddress].push(newDementorId);
+
+        emit DementorNotebookCreated(newDementorId, usersAnkyAddress);
     }
 
-    function getCurrentPage(uint256 dementorNotebookId) external view returns (DementorPage memory) {
+    function getCurrentPage(uint256 dementorNotebookId) external view returns (DementorPage memory, uint256) {
         require(_exists(dementorNotebookId), "Invalid tokenId");
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
@@ -70,7 +84,7 @@ contract AnkyDementor is ERC721Enumerable, Ownable {
         require(ownerOf(dementorNotebookId) == usersAnkyAddress, "Not the owner of this dementor notebook");
 
         DementorNotebook storage notebook = dementorNotebooks[dementorNotebookId];
-        return notebook.pages[notebook.currentPage];
+        return (notebook.pages[notebook.currentPage], notebook.currentPage);
     }
 
     function writeDementorPage(uint256 dementorNotebookId, string memory userWritingCID, string memory nextPromptCID) external onlyAnkyHolder {
@@ -81,23 +95,52 @@ contract AnkyDementor is ERC721Enumerable, Ownable {
 
         DementorNotebook storage notebook = dementorNotebooks[dementorNotebookId];
         DementorPage storage currentPage = notebook.pages[notebook.currentPage];
+        uint256 thisTimestamp = block.timestamp;
         currentPage.userWritingCID = userWritingCID;
-        currentPage.writingTimestamp = block.timestamp;
+        currentPage.writingTimestamp = thisTimestamp;
 
-        DementorPage storage nextPage = notebook.pages.push();
-        nextPage.promptCID = nextPromptCID;
-        nextPage.creationTimestamp = block.timestamp;
+        // Create the new DementorPage in memory first
+        DementorPage memory newPage = DementorPage({
+            promptCID: nextPromptCID,
+            userWritingCID: "", // Initialize this to an empty string
+            creationTimestamp: thisTimestamp,
+            writingTimestamp: 0  // Initialize this to zero
+        });
 
+        // Push the new page to the storage array. the dementor needs to have a max number of pages
+        notebook.pages.push(newPage);
         notebook.currentPage++;
     }
 
-    function doesUserOwnAnkyDementor() external view returns (bool) {
+    function getUserDementors() external view returns (uint256[] memory) {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+
+        return userDementorIds[usersAnkyAddress];
+    }
+
+    function getDementor(uint256 dementorId) external view returns (DementorNotebook memory) {
+        require(_exists(dementorId), "Invalid tokenId");
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+
+        require(ownerOf(dementorId) == usersAnkyAddress, "Not the owner of this journal");
+        return dementorNotebooks[dementorId];
+    }
+
+    function doesUserOwnAnkyDementor() external view returns (bool, uint256) {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesn't exist");
-        return balanceOf(usersAnkyAddress) > 0;
+        require(balanceOf(usersAnkyAddress) == 1 ,"The user doesnt own an anky dementor yet");
+        uint256 tempId = tokenOfOwnerByIndex(usersAnkyAddress, 0);
+        require(tempId <= type(uint32).max, "Token ID exceeds uint32 range");
+        uint32 thisAnkyDementorId = uint32(tempId);
+
+        return (true, thisAnkyDementorId);
     }
 
     function withdraw() external onlyOwner {
         payable(owner()).transfer(address(this).balance);
     }
+
 }

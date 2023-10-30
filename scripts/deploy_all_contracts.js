@@ -116,7 +116,7 @@ async function main() {
     AnkyAirdrop.target,
   ]);
   await AnkyDementor.waitForDeployment();
-  console.log(`AnkyEulogias deployed at: ${AnkyDementor.target}`);
+  console.log(`AnkyDementor deployed at: ${AnkyDementor.target}`);
   storeDeploymentData(
     'AnkyDementor',
     AnkyDementor.target,

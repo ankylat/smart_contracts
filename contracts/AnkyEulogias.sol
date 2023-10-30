@@ -9,7 +9,7 @@ import "./interfaces/AnkyAirdrop.sol";
 contract AnkyEulogias is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
 
-    struct Message {
+    struct EulogiaPage {
         address writer;
         string whoWroteIt;
         string cid;
@@ -18,20 +18,21 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
 
     struct Eulogia {
         string metadataURI;
-        Message[] messages;
+        EulogiaPage[] pages;
         uint256 maxMessages;
         bool isPublic;  // New field
         address[] allowedWriters;
     }
 
     Counters.Counter private _eulogiaIds;
-    mapping(uint256 => Eulogia) public eulogias;
-    mapping(address => uint256[]) public userEulogias;
-    mapping(address => uint256[]) public writtenEulogias;
+    mapping(uint32 => Eulogia) public eulogias;
+    mapping(uint256 => address) public eulogiaOwners;
+    mapping(address => uint32[]) public userCreatedEulogias;
+    mapping(address => uint32[]) public eulogiasWhereUserWrote;
     IAnkyAirdrop public ankyAirdrop;
 
-    event EulogiaCreated(uint256 indexed eulogiaId, address indexed owner, string metadataURI);
-    event MessageAdded(uint256 indexed eulogiaId, address indexed writer, string cid);
+    event EulogiaCreated(uint32 indexed eulogiaId, address indexed owner, string metadataURI);
+    event MessageAdded(uint32 indexed eulogiaId, address indexed writer, string cid);
 
     constructor(address _ankyAirdrop) ERC721("Anky Eulogias", "AE") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
@@ -43,37 +44,38 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
         return usersAnkyAddress;
     }
 
-    function createEulogia(string memory metadataURI, uint256 maxMsgs) external {
+    function createEulogia(string memory metadataURI, uint256 maxMsgs, uint256 randomUID) external {
         require(maxMsgs <= 500, "Max messages for a Eulogia is 500");
         require(ankyAirdrop.balanceOf(msg.sender) != 0, "Address needs to own an Anky to mint a notebook");
 
+        // Use the randomUID from frontend and the msg.sender address to generate a unique eulogia ID
+        uint32 newEulogiaId = uint32(bytes4(keccak256(abi.encodePacked(msg.sender, randomUID))));
+
         address usersAnkyAddress = _getUserAnkyAddress();
-        uint256 newEulogiaId = _eulogiaIds.current();
 
         eulogias[newEulogiaId].metadataURI = metadataURI;
         eulogias[newEulogiaId].maxMessages = maxMsgs;
 
         _mint(usersAnkyAddress, newEulogiaId); // Mint 1 token of the given ID
-        userEulogias[usersAnkyAddress].push(newEulogiaId);
+        userCreatedEulogias[usersAnkyAddress].push(newEulogiaId);
         emit EulogiaCreated(newEulogiaId, msg.sender, metadataURI);
-        _eulogiaIds.increment();
     }
 
-    function writeEulogiaPage(uint256 eulogiaId, string memory cid, string memory whoWroteIt, bool isPublic, bool wantsToMint) external {
+    function writeEulogiaPage(uint32 eulogiaId, string memory cid, string memory whoWroteIt, bool isPublic, bool wantsToMint) external {
         address usersAnkyAddress = _getUserAnkyAddress();
         Eulogia storage eulogia = eulogias[eulogiaId];
-        require(eulogia.messages.length < eulogia.maxMessages, "Maximum messages reached for this eulogia.");
+        require(eulogia.pages.length < eulogia.maxMessages, "Maximum messages reached for this eulogia.");
 
-        Message memory newMessage = Message({
-            writer: msg.sender,
+        EulogiaPage memory newMessage = EulogiaPage({
+            writer: usersAnkyAddress,
             whoWroteIt: whoWroteIt,
             cid: cid,
             timestamp: block.timestamp
         });
 
-        eulogia.messages.push(newMessage);
-        writtenEulogias[msg.sender].push(eulogiaId);
-        emit MessageAdded(eulogiaId, msg.sender, cid);
+        eulogia.pages.push(newMessage);
+        eulogiasWhereUserWrote[usersAnkyAddress].push(eulogiaId);
+        emit MessageAdded(eulogiaId, usersAnkyAddress, cid);
 
         if(isPublic){
             ankyAirdrop.registerWriting(usersAnkyAddress,"eulogia", cid);
@@ -84,66 +86,49 @@ contract AnkyEulogias is ERC721Enumerable, Ownable {
         }
     }
 
-    function _mintEulogiaNFT(uint256 eulogiaId) internal {
+    function _mintEulogiaNFT(uint32 eulogiaId) internal {
         address usersAnkyAddress = _getUserAnkyAddress();
         require(_isEulogiaWriter(usersAnkyAddress, eulogiaId), "Only writers of this Eulogia can mint.");
         require(balanceOf(usersAnkyAddress) == 0, "You already own a copy of this eulogia");
+        // THERE IS A BIG PROBLEM WITH THIS FUNCTION: IT MINTS MORE THAN ONE EULOGIA: THIS NEEDS TO BE AN ERC1155 NFT
         _mint(usersAnkyAddress, eulogiaId); // Mint 1 token of the given ID
     }
 
-    function getAllMessages(uint256 eulogiaId) external view returns(Message[] memory) {
+    function getAllMessages(uint32 eulogiaId) external view returns(EulogiaPage[] memory) {
         address usersAnkyAddress = _getUserAnkyAddress();
         require(_isEulogiaWriter(usersAnkyAddress, eulogiaId), "Only writers of this Eulogia can view messages.");
-        return eulogias[eulogiaId].messages;
+        return eulogias[eulogiaId].pages;
     }
 
-    function getPublicEulogias() external view returns (uint256[] memory) {
-        uint256[] memory publicEulogiaIds = new uint256[](_eulogiaIds.current());
-        uint256 counter = 0;
 
-        for (uint256 i = 0; i < _eulogiaIds.current(); i++) {
-            if (eulogias[i].isPublic) {
-                publicEulogiaIds[counter] = i;
-                counter++;
-            }
-        }
-
-        // Trim the array to the correct size
-        uint256[] memory trimmedPublicEulogiaIds = new uint256[](counter);
-        for (uint256 i = 0; i < counter; i++) {
-            trimmedPublicEulogiaIds[i] = publicEulogiaIds[i];
-        }
-
-        return trimmedPublicEulogiaIds;
-    }
-
-    function getEulogia(uint256 eulogiaId) external view returns(Eulogia memory) {
+    function getEulogia(uint32 eulogiaId) external view returns(Eulogia memory) {
         return eulogias[eulogiaId];
     }
 
-    // function allowWriter(uint256 eulogiaId, address writer) external {
-    //     Eulogia storage eulogia = eulogias[eulogiaId];
-    //     require(ownerOf(eulogiaId) == _getUserAnkyAddress(), "Only the owner of this eulogia can allow writers.");
-
-    //     eulogia.allowedWriters.push(writer);
-    // }
-
-    function getUserEulogias() external view returns (uint256[] memory) {
-        return userEulogias[_getUserAnkyAddress()];
+    // Adjust this function to fetch eulogias based on the owner
+    function getUserEulogias() external view returns (uint32[] memory, uint32[] memory) {
+        address usersAnkyAddress = _getUserAnkyAddress();
+        return (userCreatedEulogias[_getUserAnkyAddress()], eulogiasWhereUserWrote[usersAnkyAddress] );
     }
 
-    function getWrittenEulogias() external view returns (uint256[] memory) {
-        return writtenEulogias[_getUserAnkyAddress()];
+    function getCreatedEulogias() external view returns (uint32[] memory) {
+        address usersAnkyAddress = _getUserAnkyAddress();
+        return (userCreatedEulogias[usersAnkyAddress]);
     }
 
-    function mintEulogiaToAnky(uint256 eulogiaId) external {
+    function getWrittenEulogias() external view returns (uint32[] memory) {
+        address usersAnkyAddress = _getUserAnkyAddress();
+        return (eulogiasWhereUserWrote[usersAnkyAddress]);
+    }
+
+    function mintEulogiaToAnky(uint32 eulogiaId) external {
         address usersAnkyAddress = _getUserAnkyAddress();
         require(_isEulogiaWriter(usersAnkyAddress, eulogiaId), "Only writers of this Eulogia can mint.");
         _mint(usersAnkyAddress, eulogiaId); // Mint 1 token of the given ID
     }
 
-    function _isEulogiaWriter(address writersAnkyAddress, uint256 eulogiaId) internal view returns (bool) {
-        uint256[] memory userWrittenEulogias = writtenEulogias[writersAnkyAddress];
+    function _isEulogiaWriter(address writersAnkyAddress, uint32 eulogiaId) internal view returns (bool) {
+        uint32[] memory userWrittenEulogias = eulogiasWhereUserWrote[writersAnkyAddress];
         for(uint256 i = 0; i < userWrittenEulogias.length; i++) {
             if(userWrittenEulogias[i] == eulogiaId) {
                 return true;

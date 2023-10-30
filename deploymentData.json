@@ -1,37 +1,42 @@
 {
   "ERC6551Registry": {
-    "address": "0xcb39BEfB5d7dc730e5A73dF55ba166aAfBc5c30C",
+    "address": "0x6d38BeB76C38da1C76C58cBD32D0a880462bD231",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0x2fcdc0c7273222494e1fc9a210ddb81799243dcb8d20efd63572e1e17b18a465"
+    "deploymentHash": "0xd9dc73a494bd7371576b7423def97c5cbfd2b0e590f10ec77eede965585e7ac1"
   },
   "ERC6551Account": {
-    "address": "0xDe88b7Ee1BFe58d8e047185744812142F7902ed8",
+    "address": "0x2598a0234C1119EE37E952418eBAfc78Eecc80F7",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0x485d13568ed4ed8be914b499bd447c376c8c271d014606395d3f06ed15d43166"
+    "deploymentHash": "0xefb09325aadab11cfbf46cf0845e0a40fe7b643c95e3c716d2cc56988a8668a8"
   },
   "AnkyAirdrop": {
-    "address": "0xd58c4B5cAeF1FeB906A6a49955d43B81533E1dF4",
+    "address": "0xc8d33EdFDD29CCe3eC58D6AD47582B1E38529634",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0x629aa5e3254be0124d637029791dde470ca51da2c518c7353e849d7ef299a843"
+    "deploymentHash": "0x32dd1ace165830862eb44d9dd76cef46f75dcde699d8afa9c90099927780487a"
   },
   "AnkyTemplates": {
-    "address": "0xA624f4c2dB5cc6e80adD41930f07D72ea914d515",
+    "address": "0x17645593ea4D8DEf177F61207769Ee876F094f50",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0xc4f28b380b65f93990631195b701890158e4e6390b41c6ed1b1eb3e3fd4cf64b"
+    "deploymentHash": "0x730591c81963578f595a403131827d2b7909935add4131a66efaadfb71dbc6ac"
   },
   "AnkyNotebooks": {
-    "address": "0xb1947044656977bA6817c64818b75030Eb77a9Cb",
+    "address": "0x82e2C5861237719b78aE3108465b945505621Bf5",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0x22053ba44b7e4a0d6375bdf505b58d381aa4b81675beffcfcd357a2d375e1557"
+    "deploymentHash": "0x00238a7290dcf3220e447ff961b0af14d693578a292acea3e79f4892ebb000d4"
   },
   "AnkyJournals": {
-    "address": "0xeB22fcDFBA7430A7269285703F95d86c9a4c511E",
+    "address": "0xA03ad28aB9ff59e7f937eEB50d7Cf86EA38eE9eA",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0xd5f8af6602a8076e83ca596381a3b9147773b73ebcb3e5b0150e4943c6a65858"
+    "deploymentHash": "0xca3a0afeb7832362eb7a8aaa8590fd3a7bea60405b19017cf42966dfcf2f2703"
   },
   "AnkyEulogias": {
-    "address": "0x93Ed4DbcFa66481B721493ba48A508b970daF1A3",
+    "address": "0x17658C8e0599EaD94eD2f715108721e95f5D8F84",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0xd944d49dbb0eb509f47203828d32bc213c6bdb3ee1edf2ab3c4c604ec05fbe6c"
+    "deploymentHash": "0x2718f5b59bc7c3811f39c050dbc03565b522542b43051b361d0317713cde4fb4"
+  },
+  "AnkyDementor": {
+    "address": "0x2BeF956EdC831922C8A125F78F1e2199Ce6bfe4a",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0x5ffd7a47435e3a0f90b9805ebf83ee8e3d466ebdd954dc8057a131f24424a100"
   }
 }

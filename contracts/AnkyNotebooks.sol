@@ -12,15 +12,15 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     // Check for conflicts between these imports. overwrite the methods.
     using Counters for Counters.Counter;
 
-    struct UserPageContent {
+    struct NotebookPage {
         string arweaveCID;      // URL pointing to the user's answer on Arweave
         uint256 timestamp;      // The time when the content was added
     }
 
     struct NotebookInstance {
-        uint256 templateId;
-        uint256 notebookId;
-        UserPageContent[] userPages;
+        uint32 templateId;
+        uint32 notebookId;
+        NotebookPage[] userPages;
         bool isVirgin;
     }
 
@@ -29,26 +29,25 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     Counters.Counter private _notebookIds;
 
     // This one maps the id of the notebok to the particular notebook itself.
-    mapping(uint256 => NotebookInstance) public notebookInstances;
+    mapping(uint32 => NotebookInstance) public notebookInstances;
      // This mapping is for storing all the notebooks that a particular anky tba owns.
-    mapping(address => uint256[]) public ankyTbaToOwnedNotebooks;
+    mapping(address => uint32[]) public ankyTbaToOwnedNotebooks;
     // Track the last page written by the user for each notebook
-    mapping(uint256 => uint256) public notebookLastPageWritten;
+    mapping(uint32 => uint256) public notebookLastPageWritten;
 
     event FundsTransferred(address recipient, uint256 amount);
-    event NotebookMinted(uint256 indexed instanceId, address indexed owner, uint256 indexed templateId);
-    event PageWritten(uint256 indexed notebookId, uint256 indexed pageNumber, string arweaveURL, uint256 timestamp);
+    event NotebookMinted(uint32 indexed instanceId, address indexed owner, uint32 indexed templateId);
+    event PageWritten(uint32 indexed notebookId, uint256 indexed pageNumber, string arweaveURL, uint256 timestamp);
 
-    // constructor(address _ankyAirdrop, address _ankyTemplates, address _gelatoRelay) ERC721("Anky Notebooks", "ANKYNB") GelatoRelayContextERC2771(_gelatoRelay) {
-    //     ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
-    //     ankyTemplates = AnkyTemplates(_ankyTemplates);
-    // }
     constructor(address _ankyAirdrop, address _ankyTemplates) ERC721("Anky Notebooks", "ANKYNB")  {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
         ankyTemplates = AnkyTemplates(_ankyTemplates);
     }
 
-   function mintNotebook(address to, uint256 templateId, uint256 amount) external payable {
+   function mintNotebook(address to, uint32 templateId, uint256 amount, uint256 randomUID) external payable {
+        AnkyTemplates.NotebookTemplate memory notebookTemplate = ankyTemplates.getTemplate(templateId);
+        // Ensure that the template was created by an account and exists.
+        require(notebookTemplate.creator != address(0), "Invalid templateId");
         // Does the user own an anky?
         require(ankyAirdrop.balanceOf(msg.sender) != 0, "Address needs to own an Anky to mint a notebook");
         // Check which is the address of the anky that the user owns
@@ -56,30 +55,27 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         require(tbaAddress != address(0), "Invalid Anky address");
         require(amount == 1, "You can mint only one notebook at a time");
 
-        // This line I don't properly understand.
-        AnkyTemplates.NotebookTemplate memory notebookTemplate = ankyTemplates.getTemplate(templateId);
-        // Ensure that the template was created by an account and exists.
-        require(notebookTemplate.creator != address(0), "Invalid templateId");
 
-                // Check supply constraints
+
+        // Check supply constraints
         uint256 currentSupply = notebookTemplate.supply;
         require(currentSupply >= amount, "Insufficient supply");
 
         uint256 totalPrice = notebookTemplate.price * amount;
         require(msg.value >= totalPrice, "Insufficient Ether sent");
-        uint256 currentNotebookId = _notebookIds.current();
 
-        notebookInstances[currentNotebookId].templateId = templateId;
-        notebookInstances[currentNotebookId].notebookId = currentNotebookId;
-        notebookInstances[currentNotebookId].isVirgin = true;
-        notebookLastPageWritten[currentNotebookId] = 0;
+        uint32 newNotebookId = uint32(bytes4(keccak256(abi.encodePacked(msg.sender, randomUID))));
 
-        _mint(tbaAddress, currentNotebookId);
-        ankyTemplates.mintTemplateInstance(templateId, currentNotebookId);
-        ankyTbaToOwnedNotebooks[tbaAddress].push(currentNotebookId);
+        notebookInstances[newNotebookId].templateId = templateId;
+        notebookInstances[newNotebookId].notebookId = newNotebookId;
+        notebookInstances[newNotebookId].isVirgin = true;
+        notebookLastPageWritten[newNotebookId] = 0;
 
-        emit NotebookMinted(currentNotebookId, tbaAddress, templateId);
-        _notebookIds.increment();
+        _mint(tbaAddress, newNotebookId);
+        ankyTemplates.mintTemplateInstance(templateId, newNotebookId);
+        ankyTbaToOwnedNotebooks[tbaAddress].push(newNotebookId);
+
+        emit NotebookMinted(newNotebookId, tbaAddress, templateId);
 
 
         uint256 creatorShare = (totalPrice * 10) / 100;
@@ -93,12 +89,12 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         emit FundsTransferred(to, userShare);
     }
 
-    modifier onlyNotebookOwner(uint256 notebookId) {
+    modifier onlyNotebookOwner(uint32 notebookId) {
         require(ownerOf(notebookId) == ankyAirdrop.getUsersAnkyAddress(msg.sender), "Only the owner of the anky that stores this notebook can perform this action");
         _;
     }
 
-    function writeNotebookPage(uint256 notebookId, uint256 pageNumber, string memory arweaveCID, bool userWantsPublic) external onlyNotebookOwner(notebookId) {
+    function writeNotebookPage(uint32 notebookId, uint256 pageNumber, string memory arweaveCID, bool userWantsPublic) external onlyNotebookOwner(notebookId) {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         uint256 lastPageWritten = notebookLastPageWritten[notebookId];
         require(pageNumber == lastPageWritten, "Pages must be written in sequence");
@@ -115,7 +111,7 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         AnkyTemplates.NotebookTemplate memory notebookTemplate = ankyTemplates.getTemplate(notebookInstance.templateId);
         require(pageNumber <= notebookTemplate.numberOfPrompts, "Page number exceeds the number of prompts for this notebook");
 
-        notebookInstance.userPages.push(UserPageContent({
+        notebookInstance.userPages.push(NotebookPage({
             arweaveCID: arweaveCID,
             timestamp: block.timestamp
         }));
@@ -133,12 +129,12 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
     }
 
 
-    function getPageContent(uint256 notebookId, uint256 pageNumber) external view returns(UserPageContent memory) {
+    function getPageContent(uint32 notebookId, uint256 pageNumber) external view returns(NotebookPage memory) {
         return notebookInstances[notebookId].userPages[pageNumber];
     }
 
 
-    function getFullNotebook(uint256 notebookId) external view returns(NotebookInstance memory notebook) {
+    function getFullNotebook(uint32 notebookId) external view returns(NotebookInstance memory notebook) {
         address tbaAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(tbaAddress != address(0), "Invalid Anky address");
         require(ownerOf(notebookId) == tbaAddress, "Only the notebook owner can fetch its details");
@@ -151,36 +147,24 @@ contract AnkyNotebooks is ERC721Enumerable, Ownable {
         });
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 tokenBatch) internal override {
-        super._beforeTokenTransfer(from, to, tokenId, tokenBatch);
-        // Check if it's a transfer action (not mint or burn)
-        require(notebookInstances[tokenId].isVirgin, "Can't transfer a non-virgin notebook");
+    function _beforeTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize) internal override {
+        super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
+
+        // Convert the firstTokenId from uint256 to uint32 safely.
+        require(firstTokenId <= type(uint32).max, "Token ID is out of uint32 bounds");
+        uint32 notebookId = uint32(firstTokenId);
+
+        // Ensure it's not a batch transfer (since we're working with individual uint32 IDs)
+        require(batchSize == 1, "Batch transfers are not supported");
+
+        require(notebookInstances[notebookId].isVirgin, "Can't transfer a non-virgin notebook");
     }
 
-
-    function getOwnedNotebooks(address user) external view returns(uint256[] memory) {
+    function getOwnedNotebooks(address user) external view returns(uint32[] memory) {
         return ankyTbaToOwnedNotebooks[user];
     }
 
-    function isVirgin(uint256 notebookId) external view returns(bool) {
+    function isVirgin(uint32 notebookId) external view returns(bool) {
         return notebookInstances[notebookId].isVirgin;
     }
-
-    // function _msgSender()
-    //     internal
-    //     view
-    //     override(Context, ERC2771Context)
-    //     returns (address)
-    // {
-    //     return ERC2771Context._msgSender();
-    // }
-
-    // function _msgData()
-    //     internal
-    //     view
-    //     override(Context, ERC2771Context)
-    //     returns (bytes calldata)
-    // {
-    //     return ERC2771Context._msgData();
-    // }
 }
