@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "./lib/MinimalReceiver.sol";
 import "./lib/ERC6551AccountLib.sol";
 
-contract ERC6551Account is IERC165, IERC1271, IERC6551Account {
+contract ERC6551Account is MinimalReceiver, IERC1271, IERC6551Account {
     uint256 public nonce;
 
     receive() external payable {}
@@ -58,7 +58,7 @@ contract ERC6551Account is IERC165, IERC1271, IERC6551Account {
     }
 
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return (interfaceId == type(IERC165).interfaceId ||
+        return (interfaceId == super.supportsInterface(interfaceId) ||
             interfaceId == type(IERC6551Account).interfaceId);
     }
 
