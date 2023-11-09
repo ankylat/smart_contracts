@@ -3,7 +3,7 @@ const { deploymentFile } = require('../config');
 const storeDeploymentData = require('../storeDeploymentData');
 
 async function main() {
-  console.log('Starting the AnkyDementor contract deployment...');
+  console.log('Starting the NewAnkyNotebooks contract deployment...');
   const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
@@ -17,19 +17,19 @@ async function main() {
   }
 
   // Deployment of AnkyDementor
-  console.log('Now the NewAnkyDementor will be deployed');
-  const NewAnkyDementor = await ethers.deployContract('NewAnkyDementor', [
+  console.log('Now the NewAnkyNotebooks will be deployed');
+  const NewAnkyNotebooks = await ethers.deployContract('NewAnkyNotebooks', [
     ankyAirdropAddress,
   ]);
-  await NewAnkyDementor.waitForDeployment();
-  console.log(`NewAnkyDementor deployed at: ${NewAnkyDementor.target}`);
+  await NewAnkyNotebooks.waitForDeployment();
+  console.log(`NewAnkyNotebooks deployed at: ${NewAnkyNotebooks.target}`);
 
   await run('verify:verify', {
-    address: NewAnkyDementor.target,
+    address: NewAnkyNotebooks.target,
     constructorArguments: [ankyAirdropAddress],
   });
 
-  console.log('NewAnkyDementor contract deployed and verified!');
+  console.log('NewAnkyNotebooks contract deployed and verified!');
 }
 
 main()

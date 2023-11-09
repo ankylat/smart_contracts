@@ -45,23 +45,33 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         _implementationAddress = _implementation;
     }
 
-    // Function to airdrop a single NFT to a given address callWithSyncFee
-    function airdropNft(address to) public returns(uint256, string memory) {
-        // Add a check that needs a password or something.
-        require(balanceOf(to) == 0, "Address already owns an Anky");
-        uint256 newTokenId = _tokenIds.current();
-        _safeMint(to, newTokenId);
-        _tokenIds.increment();
-
-        string memory newTokenUri = tokenURI(newTokenId);
-
-        return (newTokenId, newTokenUri);
-    }
-
     function setAllowedContracts(address notebooks, address eulogias, address journals) external onlyOwner {
         ankyNotebooksAddress = notebooks;
         ankyEulogiasAddress = eulogias;
         ankyJournalsAddress = journals;
+    }
+
+    function mintTo(address _to) public payable returns (uint256) {
+        // here we need to be able to send some $ back to the address that is minting so that she can buy her first journal. or maybe this function shouold trigger the first journal mint. yes. that is what makes the most sense. this function should mint the first journal so that the user could be free from having to sign more transactions to use the app.
+        require(balanceOf(msg.sender) == 0, "You already own an Anky");
+        uint256 newAnkyId = _tokenIds.current();
+        _tokenIds.increment();
+        _safeMint(_to, newAnkyId);
+
+        address tba = registry.createAccount(
+            _implementationAddress,
+            block.chainid,
+            address(this),
+            newAnkyId,
+            0,       // salt
+            bytes("") // initData
+        );
+
+        ownerToTBA[_to] = tba;
+        tbaToAnkyIndex[tba] = newAnkyId;
+
+        emit TBACreated(_to, tba, newAnkyId);
+        return newAnkyId;
     }
 
     // Function to create a TBA for a user's Anky callWithSyncFee from gelato (this one doesnt )

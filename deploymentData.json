@@ -1,18 +1,18 @@
 {
   "ERC6551Registry": {
-    "address": "0x6d38BeB76C38da1C76C58cBD32D0a880462bD231",
+    "address": "0xe0768Aaa5e5003e6773Bc5F4551d22Faf532d833",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0xd9dc73a494bd7371576b7423def97c5cbfd2b0e590f10ec77eede965585e7ac1"
+    "deploymentHash": "0xf72df1f03023a3e9cb4a7e31b4981fc2e946769f653a2ed1b0f5f3d4fd957b5e"
   },
   "ERC6551Account": {
-    "address": "0x2598a0234C1119EE37E952418eBAfc78Eecc80F7",
+    "address": "0x1E5B95AC9a9872Df9fd4648184327c28fBe80213",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0xefb09325aadab11cfbf46cf0845e0a40fe7b643c95e3c716d2cc56988a8668a8"
+    "deploymentHash": "0x6592d809ecbdf6a588d7f65b54a21519b405a9c9617c06681c56e8055268c5a2"
   },
   "AnkyAirdrop": {
-    "address": "0xc8d33EdFDD29CCe3eC58D6AD47582B1E38529634",
+    "address": "0x1d02b6A2771a5bF55B578B14e113c6C78eed43c7",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0x32dd1ace165830862eb44d9dd76cef46f75dcde699d8afa9c90099927780487a"
+    "deploymentHash": "0x827f71db9324c682ca7d33c484132b0a01ff6d98373acefdec588f8e29b9ff30"
   },
   "AnkyTemplates": {
     "address": "0x17645593ea4D8DEf177F61207769Ee876F094f50",
@@ -38,5 +38,25 @@
     "address": "0x2BeF956EdC831922C8A125F78F1e2199Ce6bfe4a",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
     "deploymentHash": "0x5ffd7a47435e3a0f90b9805ebf83ee8e3d466ebdd954dc8057a131f24424a100"
+  },
+  "NewAnkyNotebooks": {
+    "address": "0x019882867258C49b3AA3C82E47F99D43Ac731EE1",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0xea7745dcf99c0cae5b82347e4ebe7a6b0a8a3c51f95db5d7a9eef82e25250428"
+  },
+  "NewAnkyJournals": {
+    "address": "0x6Ebb18e788f7DCC3762d85c11e09Ed2cD62b0A3a",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0x3cc102be379514becba2530e461fb175618f038bca6c47c2cff42eeac8c93808"
+  },
+  "NewAnkyEulogias": {
+    "address": "0x57883C7ed4b2AB3f0cbEd3d37aF1B6f8E5197C21",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0xf452a238d5ca75f6fd42b71556cba3f88dd646b7a303ff9100fb096cafe5b6dc"
+  },
+  "NewAnkyDementor": {
+    "address": "0xF6794cBF2B8063e7421cBCE7545E42c13d43B7Fe",
+    "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
+    "deploymentHash": "0x05d5fc69476f9455547f45dbf1dc79e582122ec01a94cd058eeae9ec67301898"
   }
 }

@@ -3,7 +3,7 @@ const { deploymentFile } = require('../config');
 const storeDeploymentData = require('../storeDeploymentData');
 
 async function main() {
-  console.log('Starting the AnkyDementor contract deployment...');
+  console.log('Starting the NewAnkyJournals contract deployment...');
   const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
@@ -16,20 +16,20 @@ async function main() {
     process.exit(1);
   }
 
-  // Deployment of AnkyDementor
-  console.log('Now the NewAnkyDementor will be deployed');
-  const NewAnkyDementor = await ethers.deployContract('NewAnkyDementor', [
+  // Deployment of NewAnkyJournals
+  console.log('Now the NewAnkyJournals will be deployed');
+  const NewAnkyJournals = await ethers.deployContract('NewAnkyJournals', [
     ankyAirdropAddress,
   ]);
-  await NewAnkyDementor.waitForDeployment();
-  console.log(`NewAnkyDementor deployed at: ${NewAnkyDementor.target}`);
+  await NewAnkyJournals.waitForDeployment();
+  console.log(`NewAnkyJournals deployed at: ${NewAnkyJournals.target}`);
 
   await run('verify:verify', {
-    address: NewAnkyDementor.target,
+    address: NewAnkyJournals.target,
     constructorArguments: [ankyAirdropAddress],
   });
 
-  console.log('NewAnkyDementor contract deployed and verified!');
+  console.log('NewAnkyJournals contract deployed and verified!');
 }
 
 main()

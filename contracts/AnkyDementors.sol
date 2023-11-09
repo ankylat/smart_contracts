@@ -7,12 +7,14 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
 contract AnkyDementor is ERC721, Ownable {
+    using Counters for Counters.Counter;
+    Counters.Counter private _dementorIds;
+
     uint256 public dementorPrice;
 
     struct Dementor {
         uint256 dementorId;
-        string metadataCID;
-        string passwordsCID;
+        string firstPageCid;
     }
 
     mapping(uint256 => Dementor) public dementors;
@@ -28,34 +30,27 @@ contract AnkyDementor is ERC721, Ownable {
         _;
     }
 
-    constructor(address _ankyAirdrop) ERC721("AnkyDementors", "AD") {
+    constructor(address _ankyAirdrop) ERC721("AnkyDementor", "AD") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
         dementorPrice = 0.0001 ether;
     }
 
-
-    function mintDementor(uint256 randomUID, string memory metadataCID,  string memory passwordsCID) external onlyAnkyOwner {
-        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+    function mintDementor(address mintTo, string memory firstPageCid) external payable {
+        require(mintTo == msg.sender, "The sender needs to be the address where this dementor will go");
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(mintTo);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
-        uint256 newDementorId = uint256(bytes32(keccak256(abi.encodePacked(msg.sender, randomUID))));
+        _dementorIds.increment();
+        uint256 newDementorId = _dementorIds.current();
 
         Dementor storage dementor = dementors[newDementorId];
         dementor.dementorId = newDementorId;
-        dementor.metadataCID = metadataCID;
-        dementor.passwordsCID = passwordsCID;
+        dementor.firstPageCid = firstPageCid;
 
         _mint(usersAnkyAddress, newDementorId);
         userDementorIds[usersAnkyAddress].push(newDementorId);
 
         emit DementorCreated(newDementorId, usersAnkyAddress);
-    }
-
-    function getPasswordCID(uint256 dementorId) external view returns (string memory) {
-        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
-        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
-        require(ownerOf(dementorId) == usersAnkyAddress, "You are not the owner of this journal");
-        return dementors[dementorId].passwordsCID;
     }
 
     function getDementor(uint256 dementorId) external view returns (Dementor memory) {
