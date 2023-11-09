@@ -14,7 +14,7 @@ contract AnkyJournals is ERC721, Ownable {
 
     struct Journal {
         uint256 journalId;
-        string metadataCID;
+        string title;
     }
 
     mapping(uint256 => Journal) public journals; // Mapping from token ID to Journal
@@ -22,7 +22,7 @@ contract AnkyJournals is ERC721, Ownable {
 
     IAnkyAirdrop public ankyAirdrop;
 
-    event JournalCreated(uint256 indexed journalId, address indexed owner);
+    event JournalCreated(uint256 indexed journalId, address indexed owner, string indexed title);
 
 
     modifier onlyAnkyOwner() {
@@ -35,7 +35,7 @@ contract AnkyJournals is ERC721, Ownable {
         journalPrice = 0.0001 ether;
     }
 
-    function mintJournal(string memory metadataCID) external onlyAnkyOwner {
+    function mintJournal(string memory journalTitle) external onlyAnkyOwner {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
 
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
@@ -45,12 +45,12 @@ contract AnkyJournals is ERC721, Ownable {
 
         Journal storage journal = journals[newJournalId];
         journal.journalId = newJournalId;
-        journal.metadataCID = metadataCID;
+        journal.title = journalTitle;
 
         _mint(usersAnkyAddress, newJournalId);
         userJournalIds[usersAnkyAddress].push(newJournalId);
 
-        emit JournalCreated(newJournalId, usersAnkyAddress);
+        emit JournalCreated(newJournalId, usersAnkyAddress, journalTitle);
     }
 
 
