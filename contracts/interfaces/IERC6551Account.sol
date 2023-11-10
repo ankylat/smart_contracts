@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import "../callback/TokenCallbackHandler.sol"
 
 interface IERC6551Account {
     receive() external payable;
@@ -29,7 +29,7 @@ interface IERC6551Executable {
         returns (bytes memory);
 }
 
-contract ERC6551Account is IERC165, IERC1271, IERC6551Account, IERC6551Executable {
+contract ERC6551Account is TokenCallbackHandler, IERC1271, IERC6551Account, IERC6551Executable {
     uint256 public state;
 
     receive() external payable {}
@@ -78,8 +78,8 @@ contract ERC6551Account is IERC165, IERC1271, IERC6551Account, IERC6551Executabl
         return bytes4(0);
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
-        return interfaceId == type(IERC165).interfaceId
+    function supportsInterface(bytes4 interfaceId) public view override(TokenCallbackHandler) returns (bool) {
+        return (supportsInterface(interfaceId))
             || interfaceId == type(IERC6551Account).interfaceId
             || interfaceId == type(IERC6551Executable).interfaceId;
     }
