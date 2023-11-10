@@ -16,7 +16,6 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
         uint256 eulogiaId;
         string metadataCID;
         uint256 maxMessages;
-        string passwordsCID;
     }
 
     mapping(uint256 => Eulogia) public eulogias;
@@ -40,7 +39,7 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
                 ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
     }
 
-    function createEulogia(string memory metadataCID, uint256 maxMsgs, string memory passwordsCID ) external onlyAnkyOwner {
+    function createEulogia(string memory metadataCID, uint256 maxMsgs ) external onlyAnkyOwner {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
         require(maxMsgs <= 500, "Max messages for a Eulogia is 500");
@@ -51,8 +50,7 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
         eulogias[newEulogiaId] = Eulogia({
             eulogiaId: newEulogiaId,
             metadataCID: metadataCID,
-            maxMessages: maxMsgs,
-            passwordsCID: passwordsCID
+            maxMessages: maxMsgs
         });
 
         emit EulogiaCreated(newEulogiaId, usersAnkyAddress, metadataCID);
@@ -61,8 +59,6 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
     function mintEulogia(uint256 eulogiaId) external onlyAnkyOwner {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
-
-        require(_isEulogiaWriter(usersAnkyAddress, eulogiaId), "Only writers of this Eulogia can mint.");
 
         require(balanceOf(usersAnkyAddress, eulogiaId) == 0, "You already own a copy of this eulogia");
 
@@ -97,21 +93,10 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
         return userOwnedEulogias[usersAnkyAddress];
     }
 
-    function _isEulogiaWriter(address writersAnkyAddress, uint256 eulogiaId) internal view returns (bool) {
-        uint256[] memory userWrittenEulogias = eulogiasWhereUserWrote[writersAnkyAddress];
-        for(uint256 i = 0; i < userWrittenEulogias.length; i++) {
-            if(userWrittenEulogias[i] == eulogiaId) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     function _beforeTokenTransfer(address operator, address from, address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data)
         internal
         override(ERC1155, ERC1155Supply)
     {
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
     }
-
 }

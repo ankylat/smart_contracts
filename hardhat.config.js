@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const config = {
   solidity: {
-    version: '0.8.17',
+    version: '0.8.19',
   },
   etherscan: {
     apiKey: {

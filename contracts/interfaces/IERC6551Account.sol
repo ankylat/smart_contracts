@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "../callback/TokenCallbackHandler.sol"
+import "../callback/TokenCallbackHandler.sol";
 
 interface IERC6551Account {
     receive() external payable;
