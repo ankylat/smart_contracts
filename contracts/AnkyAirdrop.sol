@@ -61,9 +61,11 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
         emit TBACreated(_to, tba, newAnkyId);
 
-        // **** Now i need to send ether to eth mainnet to mint an anky genesis NFT ****
+        // **** Now we need to send ether to eth mainnet to mint an anky genesis NFT ****
         // **** Here, we should programatically bridge 0.01618 + gas to ETHEREUM MAINNET, and with that trigger the mint function of this smart contract on ETHEREUM MAINNET: 0x5806485215c8542c448ecf707ab6321b948cab90, sending that NFT to _to on ETHEREUM MAINNET.
-        // **** The rest of the funds that were not used to buy the Anky Genesis NFT need to be sent back to the users wallet on base (on this exact mintTo function)
+        // **** The rest of the funds that were not used to buy the Anky Genesis NFT need to be sent back to the users wallet on base (on this exact mintTo function). This will be the $ with which the user will buy her first journal.
+
+        // But what if the journal is minted from inside this mint function for the anky airdrop?? That should be the flow. that should be it
 
 
         return newAnkyId;
