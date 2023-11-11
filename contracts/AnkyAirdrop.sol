@@ -52,11 +52,12 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     }
 
     function mintTo(address _to) public payable returns (uint256) {
-        // here we need to be able to send some $ back to the address that is minting so that she can buy her first journal. or maybe this function shouold trigger the first journal mint. yes. that is what makes the most sense. this function should mint the first journal so that the user could be free from having to sign more transactions to use the app.
-        require(balanceOf(msg.sender) == 0, "You already own an Anky");
+        require(_tokenIds.current() < 97, "There is no more supply of Anky Dementors");
+        require(msg.value == 0.024 ether, "This NFT costs around 50 usd, there are 96 of them.");
+        require(balanceOf(_to) == 0, "You already own an Anky");
         uint256 newAnkyId = _tokenIds.current();
-        _tokenIds.increment();
         _safeMint(_to, newAnkyId);
+        _tokenIds.increment();
 
         address tba = registry.createAccount(
             _implementationAddress,
@@ -71,6 +72,9 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         tbaToAnkyIndex[tba] = newAnkyId;
 
         emit TBACreated(_to, tba, newAnkyId);
+
+        // **** Now i need to send ether to eth mainnet to mint an anky genesis NFT ****
+
         return newAnkyId;
     }
 
