@@ -62,6 +62,33 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         emit TBACreated(_to, tba, newAnkyId);
 
         // **** Now i need to send ether to eth mainnet to mint an anky genesis NFT ****
+        // **** Here, we should programatically bridge 0.01618 + gas to ETHEREUM MAINNET, and with that trigger the mint function of this smart contract on ETHEREUM MAINNET: 0x5806485215c8542c448ecf707ab6321b948cab90, sending that NFT to _to on ETHEREUM MAINNET.
+        // **** The rest of the funds that were not used to buy the Anky Genesis NFT need to be sent back to the users wallet on base (on this exact mintTo function)
+
+
+        return newAnkyId;
+    }
+
+    function airdropToAnkyGenesisHolders(address _to) public payable onlyOwner returns (uint256) {
+        require(_tokenIds.current() < 25, "There is no more supply of Anky Dementors");
+        require(balanceOf(_to) == 0, "You already own an Anky");
+        uint256 newAnkyId = _tokenIds.current();
+        _safeMint(_to, newAnkyId);
+        _tokenIds.increment();
+
+        address tba = registry.createAccount(
+            _implementationAddress,
+            block.chainid,
+            address(this),
+            newAnkyId,
+            0,       // salt
+            bytes("") // initData
+        );
+
+        ownerToTBA[_to] = tba;
+        tbaToAnkyIndex[tba] = newAnkyId;
+
+        emit TBACreated(_to, tba, newAnkyId);
 
         return newAnkyId;
     }
