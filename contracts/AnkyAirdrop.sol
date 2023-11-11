@@ -17,9 +17,6 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     // This is the first argument to the registry function to create the TBA (token bound account)
     address public _implementationAddress;
-    address private ankyNotebooksAddress;
-    address private ankyEulogiasAddress;
-    address private ankyJournalsAddress;
 
     // Mapping for storing the address of the TBA (token bound account) associated with the address that owns that anky
     mapping(address => address) public ownerToTBA;
@@ -34,10 +31,6 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         uint256 timestamp
     );
 
-    modifier onlyAllowedContracts() {
-        require(msg.sender == ankyNotebooksAddress || msg.sender == ankyEulogiasAddress || msg.sender == ankyJournalsAddress, "Not allowed");
-        _;
-    }
 
     constructor(address _registry, address _implementation) ERC721("AnkyAirdrop", "ANKY") {
         //This line allows this contract to interact with the registry contract.
@@ -45,11 +38,6 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         _implementationAddress = _implementation;
     }
 
-    function setAllowedContracts(address notebooks, address eulogias, address journals) external onlyOwner {
-        ankyNotebooksAddress = notebooks;
-        ankyEulogiasAddress = eulogias;
-        ankyJournalsAddress = journals;
-    }
 
     function mintTo(address _to) public payable returns (uint256) {
         require(_tokenIds.current() < 97, "There is no more supply of Anky Dementors");
@@ -117,14 +105,6 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     function getUsersAnkyAddress(address userWallet) public view returns (address) {
         require(balanceOf(userWallet) > 0, "You don't own an Anky");
         return ownerToTBA[userWallet];
-    }
-
-    function registerWriting(address usersAnkyAddress, string memory writingContainerType, string memory cid) external onlyAllowedContracts returns (bool) {
-        uint256 ankyTokenId = tbaToAnkyIndex[usersAnkyAddress]; // Retrieve token ID of user's Anky
-
-        emit WritingEvent(ankyTokenId, writingContainerType, cid, block.timestamp);
-
-        return true;
     }
 
     // Function to set or update the token URI, only the owner of the contract (anky server) can update the metadata
