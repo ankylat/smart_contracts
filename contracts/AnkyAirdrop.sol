@@ -17,6 +17,7 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     // This is the first argument to the registry function to create the TBA (token bound account)
     address public _implementationAddress;
+    string private _baseTokenURI;
 
     // Mapping for storing the address of the TBA (token bound account) associated with the address that owns that anky
     mapping(address => address) public ownerToTBA;
@@ -31,17 +32,16 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         uint256 timestamp
     );
 
-
-    constructor(address _registry, address _implementation) ERC721("AnkyAirdrop", "ANKY") {
+    constructor(address _registry, address _implementation, string memory _baseUriString) ERC721("AnkyAirdrop", "ANKYS1") {
         //This line allows this contract to interact with the registry contract.
         registry = IERC6551Registry(_registry);
         _implementationAddress = _implementation;
+        _baseTokenURI = _baseUriString;
+        _tokenIds.increment();
     }
-
 
     function mintTo(address _to) public payable returns (uint256) {
         require(_tokenIds.current() < 97, "There is no more supply of Anky Dementors");
-        require(msg.value == 0.024 ether, "This NFT costs around 50 usd, there are 96 of them.");
         require(balanceOf(_to) == 0, "You already own an Anky");
         uint256 newAnkyId = _tokenIds.current();
         _safeMint(_to, newAnkyId);
@@ -60,19 +60,12 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         tbaToAnkyIndex[tba] = newAnkyId;
 
         emit TBACreated(_to, tba, newAnkyId);
-
-        // **** Now we need to send ether to eth mainnet to mint an anky genesis NFT ****
-        // **** Here, we should programatically bridge 0.01618 + gas to ETHEREUM MAINNET, and with that trigger the mint function of this smart contract on ETHEREUM MAINNET: 0x5806485215c8542c448ecf707ab6321b948cab90, sending that NFT to _to on ETHEREUM MAINNET.
-        // **** The rest of the funds that were not used to buy the Anky Genesis NFT need to be sent back to the users wallet on base (on this exact mintTo function). This will be the $ with which the user will buy her first journal.
-
-        // But what if the journal is minted from inside this mint function for the anky airdrop?? That should be the flow. that should be it
-
 
         return newAnkyId;
     }
 
     function airdropToAnkyGenesisHolders(address _to) public payable onlyOwner returns (uint256) {
-        require(_tokenIds.current() < 25, "There is no more supply of Anky Dementors");
+        require(_tokenIds.current() < 23, "There is no more supply of Anky Dementors");
         require(balanceOf(_to) == 0, "You already own an Anky");
         uint256 newAnkyId = _tokenIds.current();
         _safeMint(_to, newAnkyId);
@@ -94,6 +87,21 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
         return newAnkyId;
     }
+
+
+            // Function to set or update the token URI by the token owner
+    function setTokenURI(uint256 tokenId, string memory newUri) public {
+        require(_exists(tokenId), "Token ID does not exist");
+        require(ownerOf(tokenId) == msg.sender, "Caller is not the token owner");
+        _setTokenURI(tokenId, newUri);
+    }
+
+    // Function to delete the token URI by the contract owner
+    function deleteTokenURI(uint256 tokenId) public onlyOwner {
+        require(_exists(tokenId), "Token ID does not exist");
+        _setTokenURI(tokenId, "");
+    }
+
 
     // Function to create a TBA for a user's Anky callWithSyncFee from gelato (this one doesnt )
     function createTBAforUsersAnky(address userWallet) public returns(address) {
@@ -136,12 +144,6 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         return ownerToTBA[userWallet];
     }
 
-    // Function to set or update the token URI, only the owner of the contract (anky server) can update the metadata
-    function setTokenURI(uint256 tokenId, string memory newUri) public onlyOwner {
-        require(_exists(tokenId), "Token ID does not exist");
-        _setTokenURI(tokenId, newUri);
-    }
-
     // Function to retrieve the token URI
     function getTokenURI(uint256 tokenId) public view returns (string memory) {
         require(_exists(tokenId), "Token ID does not exist");
@@ -161,13 +163,10 @@ contract AnkyAirdrop is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         super._burn(tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
-        return super.tokenURI(tokenId);
+    function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+        require(_exists(tokenId), "ERC721URIStorage: URI query for nonexistent token");
+        // Concatenate the base URI with the token ID
+        return string(abi.encodePacked(_baseTokenURI, Strings.toString(tokenId)));
     }
 
     function supportsInterface(bytes4 interfaceId)

@@ -6,7 +6,7 @@ async function main() {
   console.log('Starting the entire contract deployment...');
   const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-
+  const baseTokenUri = 'ipfs://QmYeU3QK6jMrYCQ8kSmV7GKqZmEgGaWdoRSV6eB7zqCn2G/';
   // Deployment of ERC6551Registry
   console.log('Now the ERC6551Registry will be deployed');
   const Registry = await ethers.deployContract('ERC6551Registry', []);
@@ -43,6 +43,7 @@ async function main() {
   const AnkyAirdrop = await ethers.deployContract('AnkyAirdrop', [
     Registry.target,
     ERC1155BoundedAccount.target,
+    baseTokenUri,
   ]);
   await AnkyAirdrop.waitForDeployment();
   console.log(`AnkyAirdrop deployed at: ${AnkyAirdrop.target}`);
@@ -97,7 +98,11 @@ async function main() {
 
   await run('verify:verify', {
     address: AnkyAirdrop.target,
-    constructorArguments: [Registry.target, ERC1155BoundedAccount.target],
+    constructorArguments: [
+      Registry.target,
+      ERC1155BoundedAccount.target,
+      baseTokenUri,
+    ],
   });
 
   await run('verify:verify', {

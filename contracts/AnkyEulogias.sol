@@ -15,7 +15,6 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
     struct Eulogia {
         uint256 eulogiaId;
         string metadataCID;
-        uint256 maxMessages;
     }
 
     mapping(uint256 => Eulogia) public eulogias;
@@ -39,21 +38,24 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
                 ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
     }
 
-    function createEulogia(string memory metadataCID, uint256 maxMsgs ) external onlyAnkyOwner {
+    function createEulogia(string memory metadataCID) external onlyAnkyOwner {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
-        require(maxMsgs <= 500, "Max messages for a Eulogia is 500");
 
         _eulogiaIds.increment();
         uint256 newEulogiaId = _eulogiaIds.current();
 
         eulogias[newEulogiaId] = Eulogia({
             eulogiaId: newEulogiaId,
-            metadataCID: metadataCID,
-            maxMessages: maxMsgs
+            metadataCID: metadataCID
         });
 
+        _mint(usersAnkyAddress, newEulogiaId, 1, "");
+        eulogiaOwners[newEulogiaId].push(usersAnkyAddress);
+        userOwnedEulogias[usersAnkyAddress].push(newEulogiaId);
+
         emit EulogiaCreated(newEulogiaId, usersAnkyAddress, metadataCID);
+        emit EulogiaMinted(newEulogiaId, usersAnkyAddress);
     }
 
     function mintEulogia(uint256 eulogiaId) external onlyAnkyOwner {
@@ -71,6 +73,13 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
     function getEulogia(uint256 eulogiaId) external view returns(Eulogia memory) {
         return eulogias[eulogiaId];
     }
+
+    function getEulogiaBalance(uint256 eulogiaId) external view returns (uint256) {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+        return balanceOf(usersAnkyAddress, eulogiaId);
+    }
+
 
     function getUserCreatedEulogias() external view returns (uint256[] memory) {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);

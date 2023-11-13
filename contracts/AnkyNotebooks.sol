@@ -94,6 +94,12 @@ contract AnkyNotebooks is ERC1155, Ownable, ERC1155Supply {
         return notebooks[notebookId];
     }
 
+    function getUsersBalanceOfNotebook(uint256 notebookId) external view returns(uint256) {
+        address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
+        require(usersAnkyAddress != address(0), "This TBA doesnt exist");
+        return balanceOf(usersAnkyAddress, notebookId);
+    }
+
     function getUserNotebooks() external view returns(uint256[] memory) {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
