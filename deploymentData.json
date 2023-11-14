@@ -1,12 +1,12 @@
 {
   "ERC6551Registry": {
-    "address": "0x69Ea9FCF54B5A9F86D06c043000a99c7981Dc614",
+    "address": "0xd0BfB801E2Cdf4865e3B506C5f52AF6e470356E3",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0x5f47d07e4847603039f0ee01d77562cdc8ed62f17177b805109baafb7da1ea24"
+    "deploymentHash": "0x00170e7e9ded7b0476ca764da3181eed5dc145606bceae75c05f63c27de14fd5"
   },
   "ERC1155BoundedAccount": {
-    "address": "0xAADf7757F53dD59db858DfDd422f6619E8c9f9DA",
+    "address": "0xaC46bEa63c9f37357Cd4C60aE84Faa41eafaB4D1",
     "deployer": "0xC669E04070ce18bF24ffa69fE311B64585F400d6",
-    "deploymentHash": "0x941e5923cb25880db4cb304e13efed912ea9b6a8c3b2e8deef91a3b277878f39"
+    "deploymentHash": "0x0fd59d435a1be4c4524a7e66f0bfb7833d67bc148174ed6e59861defa7a59979"
   }
 }

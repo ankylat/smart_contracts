@@ -61,7 +61,6 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
     function mintEulogia(uint256 eulogiaId) external onlyAnkyOwner {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
-
         require(balanceOf(usersAnkyAddress, eulogiaId) == 0, "You already own a copy of this eulogia");
 
         _mint(usersAnkyAddress, eulogiaId, 1, "");
