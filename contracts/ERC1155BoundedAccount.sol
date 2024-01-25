@@ -2,15 +2,44 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "./callback/TokenCallbackHandler.sol";
-
 import "./interfaces/IERC1155BoundedAccount.sol";
+import "./interfaces/IRecovery.sol";
 
 
-contract ERC1155BoundedAccount is TokenCallbackHandler, IERC1271, IERC1155BoundedAccount {
+contract ERC1155BoundedAccount is TokenCallbackHandler, IERC1271, IERC1155BoundedAccount, IRecovery {
     uint256 private _nonce;
+    
+    struct RecoveryInfo {
+        // last time the owner used this TBA
+        uint256 lastTimeSeen;
+        // after this period of time, this TBA could be recovered
+        uint256 recoverAfter;
+        // the Anky owning this TBA will be transferred to this address
+        address beneficiary;
+    }
+    // the truct variable
+    RecoveryInfo private _recovery;
+    // setter
+    function setRecoveryInfo(uint recoverAfter, address beneficiary) public {
+        require(isValidSigner(msg.sender), "Not token owner");        
+        _recovery = RecoveryInfo(
+            block.timestamp,
+            recoverAfter,
+            beneficiary
+        );
+    }
+    // getter
+    function recoveryInfo() public view returns (uint, uint, address) {
+        return (
+            _recovery.lastTimeSeen, 
+            _recovery.recoverAfter, 
+            _recovery.beneficiary
+        );
+    }
+
     receive() external payable {}
 
     function executeCall(
@@ -21,6 +50,8 @@ contract ERC1155BoundedAccount is TokenCallbackHandler, IERC1271, IERC1155Bounde
         require(isValidSigner(msg.sender), "Not token owner");
 
         _nonce++;
+        // every call we update the last time seen for this TBA
+        _recovery.lastTimeSeen = block.timestamp;
 
         bool success;
         (success, result) = to.call{value: value}(data);
@@ -57,7 +88,7 @@ contract ERC1155BoundedAccount is TokenCallbackHandler, IERC1271, IERC1155Bounde
             .token();
         if (chainId != block.chainid) return false;
 
-        return IERC1155(tokenContract).balanceOf(signer, tokenId) > 0;
+        return IERC721(tokenContract).ownerOf(tokenId) == signer;
     }
 
     function recoverSigner(

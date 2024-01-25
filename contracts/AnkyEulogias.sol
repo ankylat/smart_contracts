@@ -4,12 +4,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
 contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
-    using Counters for Counters.Counter;
-    Counters.Counter private _eulogiaIds;
+    uint256 private _eulogiaIds;
 
 
     struct Eulogia {
@@ -34,16 +32,16 @@ contract AnkyEulogias is ERC1155, Ownable, ERC1155Supply {
         _;
     }
 
-    constructor(address _ankyAirdrop) ERC1155("") Ownable() {
-                ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
+    constructor(address _ankyAirdrop) ERC1155("") {
+        ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
+        _transferOwnership(_ankyAirdrop);
     }
 
     function createEulogia(string memory metadataCID) external onlyAnkyOwner {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
-        _eulogiaIds.increment();
-        uint256 newEulogiaId = _eulogiaIds.current();
+        uint256 newEulogiaId = ++_eulogiaIds;
 
         eulogias[newEulogiaId] = Eulogia({
             eulogiaId: newEulogiaId,

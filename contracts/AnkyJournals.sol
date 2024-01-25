@@ -2,13 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
 contract AnkyJournals is ERC721, Ownable {
-    using Counters for Counters.Counter;
-    Counters.Counter private _journalIds;
+    uint256 private _journalIds;
 
     uint256 public journalPrice;
 
@@ -33,6 +31,7 @@ contract AnkyJournals is ERC721, Ownable {
     constructor(address _ankyAirdrop) ERC721("AnkyJournals", "AJ") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
         journalPrice = 0.0001 ether;
+        _transferOwnership(_ankyAirdrop);
     }
 
     function mintJournal(string memory journalTitle) external onlyAnkyOwner {
@@ -40,8 +39,7 @@ contract AnkyJournals is ERC721, Ownable {
 
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
-        _journalIds.increment();
-        uint256 newJournalId = _journalIds.current();
+        uint256 newJournalId = ++_journalIds;
 
         Journal storage journal = journals[newJournalId];
         journal.journalId = newJournalId;
@@ -55,7 +53,7 @@ contract AnkyJournals is ERC721, Ownable {
 
 
     function getJournal(uint256 journalId) external view returns (Journal memory) {
-        require(_exists(journalId), "Invalid tokenId");
+        require(ERC721._exists(journalId), "Invalid tokenId");
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 

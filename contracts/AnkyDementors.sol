@@ -2,14 +2,12 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./interfaces/AnkyAirdrop.sol";
 
 contract AnkyDementor is ERC721, Ownable {
-    using Counters for Counters.Counter;
-    Counters.Counter private _dementorIds;
+    uint private _dementorIds;
 
     uint256 public dementorPrice;
 
@@ -34,6 +32,7 @@ contract AnkyDementor is ERC721, Ownable {
     constructor(address _ankyAirdrop) ERC721("AnkyDementor", "AD") {
         ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
         dementorPrice = 0.0001 ether;
+        _transferOwnership(_ankyAirdrop);
     }
 
     function mintDementor(address mintTo, string memory firstPageCid) external payable {
@@ -41,8 +40,7 @@ contract AnkyDementor is ERC721, Ownable {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(mintTo);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
-        _dementorIds.increment();
-        uint256 newDementorId = _dementorIds.current();
+        uint256 newDementorId = ++_dementorIds;
 
         Dementor storage dementor = dementors[newDementorId];
         dementor.dementorId = newDementorId;
@@ -55,7 +53,7 @@ contract AnkyDementor is ERC721, Ownable {
     }
 
     function getDementor(uint256 dementorId) external view returns (Dementor memory) {
-        require(_exists(dementorId), "Invalid tokenId");
+        require(ERC721._exists(dementorId), "Invalid tokenId");
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
