@@ -3,13 +3,11 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "./interfaces/AnkyAirdrop.sol";
 
 contract AnkyNotebooks is ERC1155, Ownable, ERC1155Supply {
-    using Counters for Counters.Counter;
-    Counters.Counter private _notebookIds;
+    uint256 private _notebookIds;
 
     struct Notebook {
         uint256 notebookId;
@@ -40,8 +38,9 @@ contract AnkyNotebooks is ERC1155, Ownable, ERC1155Supply {
         _;
     }
 
-    constructor(address _ankyAirdrop) ERC1155("") Ownable() {
-                ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
+    constructor(address _ankyAirdrop) ERC1155("") {
+        ankyAirdrop = IAnkyAirdrop(_ankyAirdrop);
+        _transferOwnership(_ankyAirdrop);
     }
 
     function createNotebook(string memory metadataCID, uint256 supply, uint256 price) external  {
@@ -49,8 +48,7 @@ contract AnkyNotebooks is ERC1155, Ownable, ERC1155Supply {
         address usersAnkyAddress = ankyAirdrop.getUsersAnkyAddress(msg.sender);
         require(usersAnkyAddress != address(0), "This TBA doesnt exist");
 
-        _notebookIds.increment();
-        uint256 newNotebookId = _notebookIds.current();
+        uint256 newNotebookId = ++_notebookIds;
 
         notebooks[newNotebookId] = Notebook({
             notebookId: newNotebookId,
