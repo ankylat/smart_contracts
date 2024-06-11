@@ -29,6 +29,11 @@ const config = {
   },
   networks: {
     // for mainnet
+    'optimism': {
+      url: 'https://optimism-mainnet.infura.io/v3/a3376531b7ac48079d00d747b3aaec47',
+      accounts: [process.env.WALLET_KEY],
+      gasPrice: 1000000000,
+    },
     'base-mainnet': {
       url: 'https://mainnet.base.org',
       accounts: [process.env.PRIVATE_KEY],

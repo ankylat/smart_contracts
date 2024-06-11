@@ -3,22 +3,13 @@ const { ethers } = require('hardhat');
 async function deploy() {
   const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  const ANKY_AIRDROP_ADDRESS = '0x7e966baBF5d8f8A03e9261A5250dDDc935fB98AB';
   console.log('in here');
-  const AnkyEulogias = await ethers.deployContract('AnkyEulogias', [
-    '0x7e966baBF5d8f8A03e9261A5250dDDc935fB98AB',
+  const BadgelessContract = await ethers.deployContract('Badgeless', [
   ]);
-  console.log('the anky eulogias is: ', AnkyEulogias);
+  console.log('the BadgelessContract is: ', BadgelessContract);
 
-  await AnkyEulogias.waitForDeployment();
-  console.log(`AnkyEulogias deployed at: ${AnkyEulogias.target}`);
-  storeDeploymentData(
-    'AnkyEulogias',
-    AnkyEulogias.target,
-    signer.address,
-    AnkyEulogias.deploymentTransaction().hash,
-    deploymentFile
-  );
+  await BadgelessContract.waitForDeployment();
+  console.log(`BadgelessContract deployed at: ${BadgelessContract.target}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
